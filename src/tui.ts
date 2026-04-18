@@ -1,6 +1,7 @@
 import { createComponent } from "solid-js"
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
 import { TreeRoute } from "./lib/tree/route"
+import { resolveProjectRoot } from "./lib/tree/project"
 import {
   getTreeRouteParamsForNavigation,
   isSessionRoute,
@@ -35,7 +36,11 @@ const tui: TuiPlugin = async (api) => {
   api.route.register([
     {
       name: routeName,
-      render: ({ params }) => createComponent(TreeRoute, parseTreeRouteParams(params)),
+      render: ({ params }) =>
+        createComponent(TreeRoute, {
+          projectRoot: resolveProjectRoot(api.state.path),
+          ...parseTreeRouteParams(params),
+        }),
     },
   ])
 }
