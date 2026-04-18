@@ -6,7 +6,9 @@ export type SessionFlatRow = {
   readonly id: `session:${string}`
   readonly depth: number
   readonly sessionId: string
-  readonly isCurrent: boolean
+  readonly currentSessionId: string
+  readonly title: string
+  readonly isCurrentSession: boolean
 }
 
 export type MessageFlatRow = {
@@ -14,8 +16,10 @@ export type MessageFlatRow = {
   readonly id: `message:${string}:${string}`
   readonly depth: number
   readonly sessionId: string
+  readonly currentSessionId: string
   readonly messageId: string
   readonly role: ProjectedMessageNode["record"]["info"]["role"]
+  readonly label: string
   readonly preview: string
 }
 
@@ -23,6 +27,7 @@ export type TreeFlatRow = SessionFlatRow | MessageFlatRow
 
 //TODO: config: make this configurable later
 const PREVIEW_LIMIT = 90
+const TOOL_INPUT_PREVIEW_LIMIT = 48
 
 export function buildFlatRows(
   root: ProjectedSessionNode,
@@ -31,17 +36,6 @@ export function buildFlatRows(
   const rows: TreeFlatRow[] = []
   flattenSession(rows, root, currentSessionId, 0)
   return rows
-}
-
-export function formatTreeFlatRow(row: TreeFlatRow): string {
-  const indent = "  ".repeat(row.depth)
-
-  if (row.kind === "session") {
-    const current = row.isCurrent ? " [current]" : ""
-    return `${indent}session ${row.sessionId}${current}`
-  }
-
-  return `${indent}${row.role} ${row.messageId} ${row.preview}`
 }
 
 function flattenSession(
@@ -55,7 +49,9 @@ function flattenSession(
     id: `session:${session.sessionId}`,
     depth,
     sessionId: session.sessionId,
-    isCurrent: session.sessionId === currentSessionId,
+    currentSessionId,
+    title: session.sessionId,
+    isCurrentSession: session.sessionId === currentSessionId,
   })
 
   for (const message of session.messages) {
@@ -64,8 +60,10 @@ function flattenSession(
       id: `message:${message.sessionId}:${message.messageId}`,
       depth: depth + 1,
       sessionId: message.sessionId,
+      currentSessionId,
       messageId: message.messageId,
       role: message.record.info.role,
+      label: message.record.info.role,
       preview: getMessagePreview(message),
     })
 
@@ -121,12 +119,39 @@ function getFallbackPreview(parts: readonly Part[]): string {
 }
 
 function formatToolPreview(part: ToolPart): string {
-  const input = JSON.stringify(part.state.input)
-  if (!input || input === "{}") {
+  const inputPreview = getToolInputPreview(part.state.input)
+  if (!inputPreview) {
     return `tool:${part.tool}`
   }
 
-  return `tool:${part.tool} ${input}`
+  return `tool:${part.tool} ${inputPreview}`
+}
+
+function getToolInputPreview(input: Record<string, unknown>): string | undefined {
+  const keys = Object.keys(input)
+  if (keys.length === 0) return undefined
+
+  const firstKey = keys[0]
+  if (!firstKey) return undefined
+
+  const value = input[firstKey]
+  const valueText = formatToolInputValue(value)
+  if (!valueText) return firstKey
+
+  return `${firstKey}=${truncatePreviewText(valueText, TOOL_INPUT_PREVIEW_LIMIT)}`
+}
+
+function formatToolInputValue(value: unknown): string | undefined {
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (value === null) return "null"
+
+  if (Array.isArray(value) || typeof value === "object") {
+    const json = JSON.stringify(value)
+    return json ?? undefined
+  }
+
+  return undefined
 }
 
 function isVisibleTextPart(part: Part): part is TextPart {
@@ -146,7 +171,11 @@ function isStepMarkerPart(part: Part): boolean {
 }
 
 function truncatePreview(text: string): string {
+  return truncatePreviewText(text, PREVIEW_LIMIT)
+}
+
+function truncatePreviewText(text: string, limit: number): string {
   const normalized = text.replace(/\s+/g, " ").trim()
-  if (normalized.length <= PREVIEW_LIMIT) return normalized || "(empty text)"
-  return `${normalized.slice(0, PREVIEW_LIMIT - 1)}…`
+  if (normalized.length <= limit) return normalized || "(empty text)"
+  return `${normalized.slice(0, limit - 1)}…`
 }
