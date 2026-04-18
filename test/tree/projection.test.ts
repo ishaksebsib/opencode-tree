@@ -268,7 +268,7 @@ describe("projectSessionTree", () => {
 
     expect(toolRow).toMatchObject({
       kind: "message",
-      preview: 'tool:bash {"command":"rg -n session.messages src","timeout":120}',
+      preview: "tool:bash command=rg -n session.messages src",
     })
   })
 
