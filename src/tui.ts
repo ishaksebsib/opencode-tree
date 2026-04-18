@@ -1,7 +1,8 @@
 import { createComponent } from "solid-js"
 import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
+import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages"
 import { TreeRoute } from "./lib/tree/route"
-import { resolveProjectRoot } from "./lib/tree/project"
+import { resolveProjectRoot } from "./lib/tree/project-root"
 import {
   getTreeRouteParamsForNavigation,
   isSessionRoute,
@@ -36,11 +37,17 @@ const tui: TuiPlugin = async (api) => {
   api.route.register([
     {
       name: routeName,
-      render: ({ params }) =>
-        createComponent(TreeRoute, {
-          projectRoot: resolveProjectRoot(api.state.path),
+      render: ({ params }) => {
+        const projectRoot = resolveProjectRoot(api.state.path)
+
+        return createComponent(TreeRoute, {
+          projectRoot,
+          loadSessionTranscripts: createSnapshotSessionTranscriptsLoader(api.client, {
+            directory: projectRoot,
+          }),
           ...parseTreeRouteParams(params),
-        }),
+        })
+      },
     },
   ])
 }

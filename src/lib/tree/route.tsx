@@ -1,11 +1,15 @@
 /** @jsxImportSource @opentui/solid */
 
 import { createMemo, createResource, For, Match, Switch } from "solid-js"
+import type { LoadSnapshotSessionTranscripts } from "../opencode/messages"
+import { buildFlatRows, formatTreeFlatRow } from "./flatten"
 import { bootstrapTree, type TreeBootstrapResult } from "./bootstrap"
+import { projectSessionTree } from "./project"
 
 export type TreeRouteProps = {
   readonly projectRoot?: string
   readonly sessionID?: string
+  readonly loadSessionTranscripts: LoadSnapshotSessionTranscripts
 }
 
 function getBootstrapLines(result: TreeBootstrapResult): readonly string[] {
@@ -50,6 +54,29 @@ export function TreeRoute(props: TreeRouteProps) {
     return result ? getBootstrapLines(result) : []
   })
 
+  const projectedInput = createMemo(() => {
+    const result = bootstrap()
+    if (!result || result.kind === "missing-session-context") return undefined
+    return result
+  })
+
+  const [projectedRows] = createResource(projectedInput, async (result) => {
+    const transcripts = await props.loadSessionTranscripts(result.snapshot)
+    const projectedTree = projectSessionTree(result.snapshot, transcripts)
+    return buildFlatRows(projectedTree, result.currentSessionId)
+  })
+
+  const projectedErrorMessage = createMemo(() => {
+    const error = projectedRows.error
+    if (!error) return undefined
+    return error instanceof Error ? error.message : String(error)
+  })
+
+  const rowLines = createMemo(() => {
+    const rows = projectedRows()
+    return rows ? rows.map(formatTreeFlatRow) : []
+  })
+
   return (
     <box flexDirection="column" padding={1} gap={1}>
       <text>
@@ -73,6 +100,23 @@ export function TreeRoute(props: TreeRouteProps) {
         <Match when={bootstrap()}>
           <box flexDirection="column" gap={1}>
             <For each={bootstrapLines()}>{(line) => <text>{line}</text>}</For>
+
+            <Switch>
+              <Match when={projectedInput() && projectedRows.loading}>
+                <text>Transcript status: loading messages...</text>
+              </Match>
+
+              <Match when={projectedErrorMessage()}>
+                <text>Projection error: {projectedErrorMessage()}</text>
+              </Match>
+
+              <Match when={rowLines().length > 0}>
+                <box flexDirection="column" gap={0}>
+                  <text>Projected rows:</text>
+                  <For each={rowLines()}>{(line) => <text>{line}</text>}</For>
+                </box>
+              </Match>
+            </Switch>
           </box>
         </Match>
       </Switch>
