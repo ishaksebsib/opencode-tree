@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 
-import { useKeyboard } from "@opentui/solid"
+import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createResource, createSignal, Match, on, Switch } from "solid-js"
 import type { LoadSnapshotSessionTranscripts } from "../opencode/messages"
 import type { TreeFlatRow } from "./flatten"
@@ -12,6 +12,7 @@ import {
   moveSelectionUp,
 } from "./navigation"
 import { projectSessionTree } from "./project"
+import { getTreeContentWidth } from "./layout"
 import { TreeView } from "./view"
 
 export type TreeRouteProps = {
@@ -22,6 +23,7 @@ export type TreeRouteProps = {
 
 export function TreeRoute(props: TreeRouteProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | undefined>()
+  const dimensions = useTerminalDimensions()
 
   const bootstrapInput = createMemo(() => {
     if (!props.projectRoot) return undefined
@@ -58,6 +60,7 @@ export function TreeRoute(props: TreeRouteProps) {
   })
 
   const rows = createMemo<readonly TreeFlatRow[]>(() => projectedRows() ?? [])
+  const treeWidth = createMemo(() => getTreeContentWidth(dimensions().width))
 
   createEffect(
     on(rows, (nextRows) => {
@@ -89,8 +92,7 @@ export function TreeRoute(props: TreeRouteProps) {
   })
 
   return (
-    <box flexDirection="column" padding={1} gap={1}>
-
+    <box flexDirection="column" width="100%" height="100%" padding={1} gap={1}>
       <Switch>
         <Match when={!props.projectRoot}>
           <text>Project root unavailable.</text>
@@ -121,9 +123,9 @@ export function TreeRoute(props: TreeRouteProps) {
         </Match>
 
         <Match when={rows().length > 0}>
-          <box flexDirection="column" gap={1}>
+          <box flexDirection="column" gap={1} flexGrow={1} minHeight={0}>
             <text>Move: ↑/↓ or j/k</text>
-            <TreeView rows={rows()} selectedIndex={selectedIndex()} />
+            <TreeView rows={rows()} selectedIndex={selectedIndex()} width={treeWidth()} />
           </box>
         </Match>
       </Switch>

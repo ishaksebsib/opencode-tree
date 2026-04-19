@@ -25,10 +25,6 @@ export type MessageFlatRow = {
 
 export type TreeFlatRow = SessionFlatRow | MessageFlatRow
 
-//TODO: config: make this configurable later
-const PREVIEW_LIMIT = 90
-const TOOL_INPUT_PREVIEW_LIMIT = 48
-
 export function buildFlatRows(
   root: ProjectedSessionNode,
   currentSessionId: string,
@@ -84,7 +80,7 @@ function getMessagePreview(message: ProjectedMessageNode): string {
 function getUserMessagePreview(parts: readonly Part[]): string {
   const textPart = parts.find(isVisibleTextPart)
   if (textPart) {
-    return truncatePreview(textPart.text)
+    return normalizePreviewText(textPart.text)
   }
 
   return getFallbackPreview(parts)
@@ -93,17 +89,17 @@ function getUserMessagePreview(parts: readonly Part[]): string {
 function getAssistantMessagePreview(parts: readonly Part[]): string {
   const textPart = parts.find(isVisibleTextPart)
   if (textPart) {
-    return truncatePreview(textPart.text)
+    return normalizePreviewText(textPart.text)
   }
 
   const toolPart = parts.find(isToolPart)
   if (toolPart) {
-    return truncatePreview(formatToolPreview(toolPart))
+    return normalizePreviewText(formatToolPreview(toolPart))
   }
 
   const reasoningPart = parts.find(hasReasoningText)
   if (reasoningPart) {
-    return truncatePreview(`reasoning: ${reasoningPart.text}`)
+    return normalizePreviewText(`reasoning: ${reasoningPart.text}`)
   }
 
   return getFallbackPreview(parts)
@@ -138,7 +134,7 @@ function getToolInputPreview(input: Record<string, unknown>): string | undefined
   const valueText = formatToolInputValue(value)
   if (!valueText) return firstKey
 
-  return `${firstKey}=${truncatePreviewText(valueText, TOOL_INPUT_PREVIEW_LIMIT)}`
+  return `${firstKey}=${valueText}`
 }
 
 function formatToolInputValue(value: unknown): string | undefined {
@@ -170,12 +166,7 @@ function isStepMarkerPart(part: Part): boolean {
   return part.type === "step-start" || part.type === "step-finish"
 }
 
-function truncatePreview(text: string): string {
-  return truncatePreviewText(text, PREVIEW_LIMIT)
-}
-
-function truncatePreviewText(text: string, limit: number): string {
+function normalizePreviewText(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim()
-  if (normalized.length <= limit) return normalized || "(empty text)"
-  return `${normalized.slice(0, limit - 1)}…`
+  return normalized || "(empty text)"
 }
