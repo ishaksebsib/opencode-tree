@@ -173,7 +173,7 @@ describe("projectSessionTree", () => {
       sess_child: createTranscript("sess_child", [{ id: "msg_child", created: 30, text: "branch prompt" }]),
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -217,7 +217,7 @@ describe("projectSessionTree", () => {
       sess_child_b: createTranscript("sess_child_b", [{ id: "msg_b", created: 15, text: "branch b" }]),
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -295,7 +295,7 @@ describe("projectSessionTree", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -367,7 +367,7 @@ describe("projectSessionTree", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -413,7 +413,7 @@ describe("projectSessionTree", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
     const toolRow = rows[1]
 
     expect(toolRow).toMatchObject({
@@ -453,7 +453,7 @@ describe("projectSessionTree", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
     const reasoningRow = rows[1]
 
     expect(reasoningRow).toMatchObject({

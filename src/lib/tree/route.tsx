@@ -6,7 +6,7 @@ import { createEffect, createMemo, createResource, createSignal, Match, on, Show
 import { executeTreeBranchAction } from "../opencode/branch"
 import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
 import { planTreeBranchAction } from "./branch"
-import type { TreeFlatRow } from "./flatten"
+import type { FlatTreeRows, TreeFlatRow } from "./flatten"
 import { buildFlatRows } from "./flatten"
 import { bootstrapTree } from "./bootstrap"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
@@ -53,14 +53,14 @@ export function TreeRoute(props: TreeRouteProps) {
   const [projectedTreeData] = createResource(projectedInput, async (result) => {
     const transcripts = await props.loadSessionTranscripts(result.snapshot)
     const projectedTree = projectSessionTree(result.snapshot, transcripts)
-    const rows = buildFlatRows(projectedTree, result.currentSessionId)
+    const flatTree = buildFlatRows(projectedTree, result.currentSessionId)
 
     return {
       transcripts,
-      rows,
+      flatTree,
     } satisfies {
       transcripts: SessionTranscriptMap
-      rows: readonly TreeFlatRow[]
+      flatTree: FlatTreeRows
     }
   })
 
@@ -70,7 +70,7 @@ export function TreeRoute(props: TreeRouteProps) {
     return error instanceof Error ? error.message : String(error)
   })
 
-  const rows = createMemo<readonly TreeFlatRow[]>(() => projectedTreeData()?.rows ?? [])
+  const rows = createMemo<readonly TreeFlatRow[]>(() => projectedTreeData()?.flatTree.rows ?? [])
   const selectedRow = createMemo(() => {
     const index = selectedIndex()
     if (index === undefined) return undefined
@@ -79,14 +79,19 @@ export function TreeRoute(props: TreeRouteProps) {
   const treeWidth = createMemo(() => getTreeContentWidth(dimensions().width))
 
   createEffect(
-    on(rows, (nextRows) => {
+    on(projectedTreeData, (nextTreeData) => {
       const currentSessionId = props.sessionID
       if (!currentSessionId) {
         setSelectedIndex(undefined)
         return
       }
 
-      setSelectedIndex(getInitialSelectedRowIndex(nextRows, currentSessionId))
+      if (!nextTreeData) {
+        setSelectedIndex(undefined)
+        return
+      }
+
+      setSelectedIndex(getInitialSelectedRowIndex(nextTreeData.flatTree, currentSessionId))
     }),
   )
 

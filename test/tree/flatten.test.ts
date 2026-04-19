@@ -167,7 +167,7 @@ describe("buildFlatRows preview", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
     const toolRow = rows[1]
 
     expect(toolRow).toBeDefined()
@@ -200,7 +200,7 @@ describe("buildFlatRows preview", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
     const reasoningRow = rows[1]
 
     expect(reasoningRow).toMatchObject({
@@ -222,7 +222,7 @@ describe("buildFlatRows preview", () => {
       },
     }
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root")
+    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
     expect(rows[1]).toMatchObject({
       kind: "message",
       preview: "hello from user prompt",

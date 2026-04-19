@@ -1,19 +1,11 @@
-import type { TreeFlatRow } from "./flatten"
-
-export function findFirstRowIndexForSession(
-  rows: readonly TreeFlatRow[],
-  sessionId: string,
-): number | undefined {
-  const index = rows.findIndex((row) => row.sessionId === sessionId)
-  return index >= 0 ? index : undefined
-}
+import type { FlatTreeRows, TreeFlatRow } from "./flatten"
 
 export function getInitialSelectedRowIndex(
-  rows: readonly TreeFlatRow[],
+  flatTree: FlatTreeRows,
   currentSessionId: string,
 ): number | undefined {
-  if (rows.length === 0) return undefined
-  return findFirstRowIndexForSession(rows, currentSessionId) ?? 0
+  if (flatTree.rows.length === 0) return undefined
+  return flatTree.lastRowIndexBySessionId[currentSessionId] ?? 0
 }
 
 export function moveSelectionUp(

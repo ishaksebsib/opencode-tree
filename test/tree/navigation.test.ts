@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import type { TreeFlatRow } from "../../src/lib/tree/flatten"
-import {
-  findFirstRowIndexForSession,
-  getInitialSelectedRowIndex,
-  moveSelectionDown,
-  moveSelectionUp,
-} from "../../src/lib/tree/navigation"
+import type { FlatTreeRows, TreeFlatRow } from "../../src/lib/tree/flatten"
+import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "../../src/lib/tree/navigation"
 
 const rows: readonly TreeFlatRow[] = [
   {
@@ -50,27 +45,33 @@ const rows: readonly TreeFlatRow[] = [
   },
 ]
 
-describe("findFirstRowIndexForSession", () => {
-  test("finds first row for current session subtree", () => {
-    expect(findFirstRowIndexForSession(rows, "sess_child")).toBe(2)
-  })
-
-  test("returns undefined when session is absent", () => {
-    expect(findFirstRowIndexForSession(rows, "sess_missing")).toBeUndefined()
-  })
-})
+const flatTree: FlatTreeRows = {
+  rows,
+  lastRowIndexBySessionId: {
+    sess_root: 1,
+    sess_child: 3,
+  },
+}
 
 describe("getInitialSelectedRowIndex", () => {
-  test("focuses first row for current session", () => {
-    expect(getInitialSelectedRowIndex(rows, "sess_child")).toBe(2)
+  test("focuses last row for current session in O(1)", () => {
+    expect(getInitialSelectedRowIndex(flatTree, "sess_child")).toBe(3)
   })
 
   test("falls back to first row when current session is absent", () => {
-    expect(getInitialSelectedRowIndex(rows, "sess_missing")).toBe(0)
+    expect(getInitialSelectedRowIndex(flatTree, "sess_missing")).toBe(0)
   })
 
   test("returns undefined for empty rows", () => {
-    expect(getInitialSelectedRowIndex([], "sess_child")).toBeUndefined()
+    expect(
+      getInitialSelectedRowIndex(
+        {
+          rows: [],
+          lastRowIndexBySessionId: {},
+        },
+        "sess_child",
+      ),
+    ).toBeUndefined()
   })
 })
 

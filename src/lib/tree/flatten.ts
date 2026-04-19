@@ -25,48 +25,77 @@ export type MessageFlatRow = {
 
 export type TreeFlatRow = SessionFlatRow | MessageFlatRow
 
+export type FlatTreeRows = {
+  readonly rows: readonly TreeFlatRow[]
+  readonly lastRowIndexBySessionId: Readonly<Record<string, number>>
+}
+
 export function buildFlatRows(
   root: ProjectedSessionNode,
   currentSessionId: string,
-): readonly TreeFlatRow[] {
+): FlatTreeRows {
   const rows: TreeFlatRow[] = []
-  flattenSession(rows, root, currentSessionId, 0)
-  return rows
+  const lastRowIndexBySessionId: Record<string, number> = {}
+
+  flattenSession(rows, lastRowIndexBySessionId, root, currentSessionId, 0)
+
+  return {
+    rows,
+    lastRowIndexBySessionId,
+  }
 }
 
 function flattenSession(
   rows: TreeFlatRow[],
+  lastRowIndexBySessionId: Record<string, number>,
   session: ProjectedSessionNode,
   currentSessionId: string,
   depth: number,
 ): void {
-  rows.push({
-    kind: "session",
-    id: `session:${session.sessionId}`,
-    depth,
-    sessionId: session.sessionId,
-    currentSessionId,
-    title: session.sessionId,
-    isCurrentSession: session.sessionId === currentSessionId,
-  })
+  pushRow(
+    rows,
+    lastRowIndexBySessionId,
+    {
+      kind: "session",
+      id: `session:${session.sessionId}`,
+      depth,
+      sessionId: session.sessionId,
+      currentSessionId,
+      title: session.sessionId,
+      isCurrentSession: session.sessionId === currentSessionId,
+    },
+  )
 
   for (const message of session.messages) {
-    rows.push({
-      kind: "message",
-      id: `message:${message.sessionId}:${message.messageId}`,
-      depth: depth + 1,
-      sessionId: message.sessionId,
-      currentSessionId,
-      messageId: message.messageId,
-      role: message.record.info.role,
-      label: message.record.info.role,
-      preview: getMessagePreview(message),
-    })
+    pushRow(
+      rows,
+      lastRowIndexBySessionId,
+      {
+        kind: "message",
+        id: `message:${message.sessionId}:${message.messageId}`,
+        depth: depth + 1,
+        sessionId: message.sessionId,
+        currentSessionId,
+        messageId: message.messageId,
+        role: message.record.info.role,
+        label: message.record.info.role,
+        preview: getMessagePreview(message),
+      },
+    )
 
     for (const childSession of message.childSessions) {
-      flattenSession(rows, childSession, currentSessionId, depth + 2)
+      flattenSession(rows, lastRowIndexBySessionId, childSession, currentSessionId, depth + 2)
     }
   }
+}
+
+function pushRow(
+  rows: TreeFlatRow[],
+  lastRowIndexBySessionId: Record<string, number>,
+  row: TreeFlatRow,
+): void {
+  rows.push(row)
+  lastRowIndexBySessionId[row.sessionId] = rows.length - 1
 }
 
 function getMessagePreview(message: ProjectedMessageNode): string {
