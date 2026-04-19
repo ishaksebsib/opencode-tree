@@ -19,3 +19,13 @@ export async function readRegistry(projectRoot: string): Promise<TreeRegistry> {
 export async function writeRegistry(projectRoot: string, registry: TreeRegistry): Promise<TreeRegistry> {
   return writeJsonFile(getRegistryFilePath(projectRoot), registrySchema, registry)
 }
+
+export function registerSessionTree(registry: TreeRegistry, sessionId: string, treeId: string): TreeRegistry {
+  return {
+    ...registry,
+    sessions: {
+      ...registry.sessions,
+      [sessionId]: treeId,
+    },
+  }
+}

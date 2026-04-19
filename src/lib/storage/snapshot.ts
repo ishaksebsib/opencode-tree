@@ -12,3 +12,38 @@ export async function writeSnapshot(
 ): Promise<TreeSnapshot> {
   return writeJsonFile(getSnapshotFilePath(projectRoot, snapshot.treeId), snapshotSchema, snapshot)
 }
+
+export function appendChildSession(
+  snapshot: TreeSnapshot,
+  input: {
+    sessionId: string
+    parentSessionId: string
+    anchorMessageId: string
+  },
+): TreeSnapshot {
+  const parent = snapshot.sessions[input.parentSessionId]
+  if (!parent) {
+    throw new Error(`Missing parent session ${input.parentSessionId}`)
+  }
+
+  if (snapshot.sessions[input.sessionId]) {
+    throw new Error(`Session ${input.sessionId} already exists in snapshot`)
+  }
+
+  return {
+    ...snapshot,
+    sessions: {
+      ...snapshot.sessions,
+      [input.parentSessionId]: {
+        ...parent,
+        children: [...parent.children, input.sessionId],
+      },
+      [input.sessionId]: {
+        sessionId: input.sessionId,
+        parentSessionId: input.parentSessionId,
+        anchorMessageId: input.anchorMessageId,
+        children: [],
+      },
+    },
+  }
+}

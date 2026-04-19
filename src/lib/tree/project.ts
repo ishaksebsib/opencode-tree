@@ -1,4 +1,4 @@
-import type { SessionTranscriptMap } from "../opencode/messages"
+import type { SessionTranscript, SessionTranscriptMap } from "../opencode/messages"
 import type { TreeSnapshot } from "../storage"
 
 export type ProjectedMessageNode = {
@@ -37,6 +37,7 @@ function projectSessionNode(
     throw new Error(`Missing transcript for session ${sessionId}`)
   }
 
+  const hiddenPrefixCount = getHiddenPrefixCount(snapshot, transcripts, sessionId)
   const childrenByAnchor = new Map<string, readonly string[]>()
   for (const childSessionId of snapshotSession.children) {
     const childSession = snapshot.sessions[childSessionId]
@@ -54,7 +55,7 @@ function projectSessionNode(
   }
 
   const seenAnchors = new Set<string>()
-  const messages = transcript.messages.map((record) => {
+  const messages = transcript.messages.slice(hiddenPrefixCount).map((record) => {
     const anchoredChildIds = childrenByAnchor.get(record.info.id) ?? []
     if (anchoredChildIds.length > 0) {
       seenAnchors.add(record.info.id)
@@ -81,4 +82,40 @@ function projectSessionNode(
     sessionId,
     messages,
   }
+}
+
+function getHiddenPrefixCount(
+  snapshot: TreeSnapshot,
+  transcripts: SessionTranscriptMap,
+  sessionId: string,
+): number {
+  const snapshotSession = snapshot.sessions[sessionId]
+  if (!snapshotSession) {
+    throw new Error(`Missing snapshot session ${sessionId}`)
+  }
+
+  if (!snapshotSession.parentSessionId || !snapshotSession.anchorMessageId) {
+    return 0
+  }
+
+  const parentTranscript = transcripts[snapshotSession.parentSessionId]
+  if (!parentTranscript) {
+    throw new Error(`Missing transcript for parent session ${snapshotSession.parentSessionId}`)
+  }
+
+  return getInheritedPrefixCount(parentTranscript, snapshotSession.anchorMessageId)
+}
+
+function getInheritedPrefixCount(parentTranscript: SessionTranscript, anchorMessageId: string): number {
+  const anchorIndex = parentTranscript.messages.findIndex((message) => message.info.id === anchorMessageId)
+  if (anchorIndex < 0) {
+    throw new Error(`Anchor message ${anchorMessageId} not found in parent session ${parentTranscript.sessionId}`)
+  }
+
+  const anchorRecord = parentTranscript.messages[anchorIndex]
+  if (!anchorRecord) {
+    throw new Error(`Anchor message ${anchorMessageId} not found in parent session ${parentTranscript.sessionId}`)
+  }
+
+  return anchorRecord.info.role === "assistant" ? anchorIndex + 1 : anchorIndex
 }

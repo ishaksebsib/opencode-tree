@@ -131,3 +131,35 @@ export function createSnapshotSessionTranscriptsLoader(
   const loadPage = createSessionMessagesPageLoader(client, options)
   return (snapshot) => loadSnapshotSessionTranscripts(snapshot, (sessionId) => loadSessionTranscript(sessionId, loadPage, options.pageSize))
 }
+
+export function getSessionMessageRecord(
+  transcripts: SessionTranscriptMap,
+  sessionId: string,
+  messageId: string,
+): SessionMessageRecord | undefined {
+  const transcript = transcripts[sessionId]
+  if (!transcript) return undefined
+  return transcript.messages.find((message) => message.info.id === messageId)
+}
+
+export function getNextSessionMessageRecord(
+  transcripts: SessionTranscriptMap,
+  sessionId: string,
+  messageId: string,
+): SessionMessageRecord | undefined {
+  const transcript = transcripts[sessionId]
+  if (!transcript) return undefined
+
+  const index = transcript.messages.findIndex((message) => message.info.id === messageId)
+  if (index < 0) return undefined
+  return transcript.messages[index + 1]
+}
+
+export function getMessageTextReplay(parts: readonly Part[]): string | undefined {
+  const text = parts.reduce((result, part) => {
+    if (part.type !== "text" || part.synthetic || part.ignored) return result
+    return result + part.text
+  }, "")
+
+  return text.length > 0 ? text : undefined
+}

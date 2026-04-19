@@ -41,10 +41,14 @@ const tui: TuiPlugin = async (api) => {
         const projectRoot = resolveProjectRoot(api.state.path)
 
         return createComponent(TreeRoute, {
+          client: api.client,
           projectRoot,
           loadSessionTranscripts: createSnapshotSessionTranscriptsLoader(api.client, {
             directory: projectRoot,
           }),
+          navigateToSession: (sessionId: string) => {
+            api.route.navigate("session", { sessionID: sessionId })
+          },
           ...parseTreeRouteParams(params),
         })
       },
