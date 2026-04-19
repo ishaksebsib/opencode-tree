@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import type { Message, Part, UserMessage } from "@opencode-ai/sdk/v2"
 import {
+  getMessageTextReplay,
+  getNextSessionMessageRecord,
+  getSessionMessageRecord,
   loadSessionTranscript,
   loadSnapshotSessionTranscripts,
   type SessionMessageRecord,
@@ -71,6 +74,62 @@ describe("loadSessionTranscript", () => {
         createMessageRecord("msg_04", "sess_root", 40),
       ],
     })
+  })
+})
+
+describe("message helpers", () => {
+  test("finds current and next session messages", async () => {
+    const snapshot: TreeSnapshot = {
+      version: 1,
+      treeId: "tree_01",
+      rootSessionId: "sess_root",
+      sessions: {
+        sess_root: {
+          sessionId: "sess_root",
+          parentSessionId: null,
+          anchorMessageId: null,
+          children: [],
+        },
+      },
+    }
+
+    const transcripts = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) => ({
+      sessionId,
+      messages: [createMessageRecord("msg_01", sessionId, 1), createMessageRecord("msg_02", sessionId, 2)],
+    }))
+
+    expect(getSessionMessageRecord(transcripts, "sess_root", "msg_01")).toEqual(createMessageRecord("msg_01", "sess_root", 1))
+    expect(getNextSessionMessageRecord(transcripts, "sess_root", "msg_01")).toEqual(createMessageRecord("msg_02", "sess_root", 2))
+    expect(getNextSessionMessageRecord(transcripts, "sess_root", "msg_02")).toBeUndefined()
+  })
+
+  test("extracts text-only prompt replay", () => {
+    const parts: Part[] = [
+      {
+        id: "part_1",
+        sessionID: "sess_root",
+        messageID: "msg_01",
+        type: "text",
+        text: "hello",
+      },
+      {
+        id: "part_2",
+        sessionID: "sess_root",
+        messageID: "msg_01",
+        type: "text",
+        text: " world",
+        synthetic: true,
+      },
+      {
+        id: "part_3",
+        sessionID: "sess_root",
+        messageID: "msg_01",
+        type: "text",
+        text: " there",
+      },
+    ]
+
+    expect(getMessageTextReplay(parts)).toBe("hello there")
   })
 })
 

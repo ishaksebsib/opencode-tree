@@ -1,0 +1,188 @@
+import { describe, expect, test } from "bun:test"
+import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
+import type { SessionTranscriptMap } from "../../src/lib/opencode/messages"
+import { planTreeBranchAction } from "../../src/lib/tree/branch"
+import type { TreeFlatRow } from "../../src/lib/tree/flatten"
+
+function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
+  return {
+    id,
+    sessionID,
+    role: "user",
+    time: { created },
+    agent: "test-agent",
+    model: {
+      providerID: "test-provider",
+      modelID: "test-model",
+    },
+  }
+}
+
+function createAssistantMessage(id: string, sessionID: string, created: number, parentID = "msg_user"): AssistantMessage {
+  return {
+    id,
+    sessionID,
+    role: "assistant",
+    time: { created, completed: created + 1 },
+    parentID,
+    modelID: "test-model",
+    providerID: "test-provider",
+    mode: "default",
+    agent: "test-agent",
+    path: {
+      cwd: "/repo",
+      root: "/repo",
+    },
+    cost: 0,
+    tokens: {
+      input: 0,
+      output: 0,
+      reasoning: 0,
+      cache: {
+        read: 0,
+        write: 0,
+      },
+    },
+  }
+}
+
+function createTextPart(messageID: string, sessionID: string, text: string): TextPart {
+  return {
+    id: `${messageID}_text`,
+    sessionID,
+    messageID,
+    type: "text",
+    text,
+  }
+}
+
+function createMessageRow(input: {
+  sessionId: string
+  currentSessionId: string
+  messageId: string
+  role: "user" | "assistant"
+}): TreeFlatRow {
+  return {
+    kind: "message",
+    id: `message:${input.sessionId}:${input.messageId}`,
+    depth: 1,
+    sessionId: input.sessionId,
+    currentSessionId: input.currentSessionId,
+    messageId: input.messageId,
+    role: input.role,
+    label: input.role,
+    preview: input.role,
+  }
+}
+
+const transcripts: SessionTranscriptMap = {
+  sess_root: {
+    sessionId: "sess_root",
+    messages: [
+      {
+        info: createUserMessage("msg_user", "sess_root", 10),
+        parts: [createTextPart("msg_user", "sess_root", "hello branch")],
+      },
+      {
+        info: createAssistantMessage("msg_assistant", "sess_root", 20),
+        parts: [createTextPart("msg_assistant", "sess_root", "assistant reply")],
+      },
+      {
+        info: createUserMessage("msg_after", "sess_root", 30),
+        parts: [createTextPart("msg_after", "sess_root", "after reply")],
+      },
+    ],
+  },
+  sess_leaf: {
+    sessionId: "sess_leaf",
+    messages: [
+      {
+        info: createUserMessage("msg_leaf_user", "sess_leaf", 10),
+        parts: [createTextPart("msg_leaf_user", "sess_leaf", "leaf user")],
+      },
+      {
+        info: createAssistantMessage("msg_leaf_last", "sess_leaf", 20, "msg_leaf_user"),
+        parts: [createTextPart("msg_leaf_last", "sess_leaf", "leaf assistant")],
+      },
+    ],
+  },
+}
+
+describe("planTreeBranchAction", () => {
+  test("forks user message at selected message and replays text", () => {
+    expect(
+      planTreeBranchAction({
+        row: createMessageRow({
+          sessionId: "sess_root",
+          currentSessionId: "sess_root",
+          messageId: "msg_user",
+          role: "user",
+        }),
+        transcripts,
+      }),
+    ).toEqual({
+      kind: "fork",
+      sessionId: "sess_root",
+      anchorMessageId: "msg_user",
+      forkMessageId: "msg_user",
+      appendPromptText: "hello branch",
+    })
+  })
+
+  test("forks assistant message from next message so selected assistant stays visible", () => {
+    expect(
+      planTreeBranchAction({
+        row: createMessageRow({
+          sessionId: "sess_root",
+          currentSessionId: "sess_root",
+          messageId: "msg_assistant",
+          role: "assistant",
+        }),
+        transcripts,
+      }),
+    ).toEqual({
+      kind: "fork",
+      sessionId: "sess_root",
+      anchorMessageId: "msg_assistant",
+      forkMessageId: "msg_after",
+    })
+  })
+
+  test("switches to session when assistant is last message", () => {
+    expect(
+      planTreeBranchAction({
+        row: createMessageRow({
+          sessionId: "sess_leaf",
+          currentSessionId: "sess_root",
+          messageId: "msg_leaf_last",
+          role: "assistant",
+        }),
+        transcripts,
+      }),
+    ).toEqual({
+      kind: "switch-session",
+      sessionId: "sess_leaf",
+    })
+  })
+
+  test("shows notice for non-message rows", () => {
+    expect(
+      planTreeBranchAction({
+        row: {
+          kind: "session",
+          id: "session:sess_root",
+          depth: 0,
+          sessionId: "sess_root",
+          currentSessionId: "sess_root",
+          title: "sess_root",
+          isCurrentSession: true,
+        },
+        transcripts,
+      }),
+    ).toEqual({
+      kind: "show-notice",
+      message: "Select a user or assistant message to branch.",
+      variant: "info",
+    })
+  })
+})

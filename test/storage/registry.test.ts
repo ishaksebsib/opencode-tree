@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { readRegistry, writeRegistry } from "../../src/lib/storage/registry"
+import { readRegistry, registerSessionTree, writeRegistry } from "../../src/lib/storage/registry"
 import { StorageJsonParseError, StorageSchemaError } from "../../src/lib/storage/file"
 import { getRegistryFilePath } from "../../src/lib/storage/paths"
 
@@ -40,6 +40,29 @@ describe("readRegistry", () => {
     await writeFile(filePath, JSON.stringify({ version: 2, sessions: {} }), "utf8")
 
     expect(readRegistry(projectRoot)).rejects.toBeInstanceOf(StorageSchemaError)
+  })
+})
+
+describe("registerSessionTree", () => {
+  test("adds new session mapping without mutating existing entries", () => {
+    expect(
+      registerSessionTree(
+        {
+          version: 1,
+          sessions: {
+            sess_root: "tree_01",
+          },
+        },
+        "sess_child",
+        "tree_01",
+      ),
+    ).toEqual({
+      version: 1,
+      sessions: {
+        sess_root: "tree_01",
+        sess_child: "tree_01",
+      },
+    })
   })
 })
 

@@ -229,6 +229,156 @@ describe("projectSessionTree", () => {
     ])
   })
 
+  test("hides inherited prefix for user-anchored child sessions", () => {
+    const snapshot: TreeSnapshot = {
+      version: 1,
+      treeId: "tree_01",
+      rootSessionId: "sess_root",
+      sessions: {
+        sess_root: {
+          sessionId: "sess_root",
+          parentSessionId: null,
+          anchorMessageId: null,
+          children: ["sess_child"],
+        },
+        sess_child: {
+          sessionId: "sess_child",
+          parentSessionId: "sess_root",
+          anchorMessageId: "msg_anchor",
+          children: [],
+        },
+      },
+    }
+
+    const transcripts: SessionTranscriptMap = {
+      sess_root: {
+        sessionId: "sess_root",
+        messages: [
+          {
+            info: createUserMessage("msg_hello", "sess_root", 10),
+            parts: [createTextPart("msg_hello", "sess_root", "hello")],
+          },
+          {
+            info: createAssistantMessage("msg_reply", "sess_root", 20, "msg_hello"),
+            parts: [createTextPart("msg_reply", "sess_root", "hi there")],
+          },
+          {
+            info: createUserMessage("msg_anchor", "sess_root", 30),
+            parts: [createTextPart("msg_anchor", "sess_root", "how are you doing")],
+          },
+          {
+            info: createAssistantMessage("msg_after", "sess_root", 40, "msg_anchor"),
+            parts: [createTextPart("msg_after", "sess_root", "doing well")],
+          },
+        ],
+      },
+      sess_child: {
+        sessionId: "sess_child",
+        messages: [
+          {
+            info: createUserMessage("msg_clone_1", "sess_child", 10),
+            parts: [createTextPart("msg_clone_1", "sess_child", "hello")],
+          },
+          {
+            info: createAssistantMessage("msg_clone_2", "sess_child", 20, "msg_clone_1"),
+            parts: [createTextPart("msg_clone_2", "sess_child", "hi there")],
+          },
+          {
+            info: createUserMessage("msg_branch_user", "sess_child", 50),
+            parts: [createTextPart("msg_branch_user", "sess_child", "i'm fine how are you")],
+          },
+          {
+            info: createAssistantMessage("msg_branch_reply", "sess_child", 60, "msg_branch_user"),
+            parts: [createTextPart("msg_branch_reply", "sess_child", "I'm doing well too")],
+          },
+        ],
+      },
+    }
+
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child")
+
+    expect(rows.map((row) => row.id)).toEqual([
+      "session:sess_root",
+      "message:sess_root:msg_hello",
+      "message:sess_root:msg_reply",
+      "message:sess_root:msg_anchor",
+      "session:sess_child",
+      "message:sess_child:msg_branch_user",
+      "message:sess_child:msg_branch_reply",
+      "message:sess_root:msg_after",
+    ])
+  })
+
+  test("hides inherited prefix through assistant anchor for assistant-anchored child sessions", () => {
+    const snapshot: TreeSnapshot = {
+      version: 1,
+      treeId: "tree_01",
+      rootSessionId: "sess_root",
+      sessions: {
+        sess_root: {
+          sessionId: "sess_root",
+          parentSessionId: null,
+          anchorMessageId: null,
+          children: ["sess_child"],
+        },
+        sess_child: {
+          sessionId: "sess_child",
+          parentSessionId: "sess_root",
+          anchorMessageId: "msg_anchor_assistant",
+          children: [],
+        },
+      },
+    }
+
+    const transcripts: SessionTranscriptMap = {
+      sess_root: {
+        sessionId: "sess_root",
+        messages: [
+          {
+            info: createUserMessage("msg_user", "sess_root", 10),
+            parts: [createTextPart("msg_user", "sess_root", "hello")],
+          },
+          {
+            info: createAssistantMessage("msg_anchor_assistant", "sess_root", 20, "msg_user"),
+            parts: [createTextPart("msg_anchor_assistant", "sess_root", "assistant anchor")],
+          },
+          {
+            info: createUserMessage("msg_after_user", "sess_root", 30),
+            parts: [createTextPart("msg_after_user", "sess_root", "follow up")],
+          },
+        ],
+      },
+      sess_child: {
+        sessionId: "sess_child",
+        messages: [
+          {
+            info: createUserMessage("msg_clone_user", "sess_child", 10),
+            parts: [createTextPart("msg_clone_user", "sess_child", "hello")],
+          },
+          {
+            info: createAssistantMessage("msg_clone_assistant", "sess_child", 20, "msg_clone_user"),
+            parts: [createTextPart("msg_clone_assistant", "sess_child", "assistant anchor")],
+          },
+          {
+            info: createUserMessage("msg_branch_user", "sess_child", 40),
+            parts: [createTextPart("msg_branch_user", "sess_child", "new path")],
+          },
+        ],
+      },
+    }
+
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child")
+
+    expect(rows.map((row) => row.id)).toEqual([
+      "session:sess_root",
+      "message:sess_root:msg_user",
+      "message:sess_root:msg_anchor_assistant",
+      "session:sess_child",
+      "message:sess_child:msg_branch_user",
+      "message:sess_root:msg_after_user",
+    ])
+  })
+
   test("uses assistant tool preview when no visible text exists", () => {
     const snapshot: TreeSnapshot = {
       version: 1,

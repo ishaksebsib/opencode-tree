@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { StorageJsonParseError, StorageSchemaError } from "../../src/lib/storage/file"
 import { getSnapshotFilePath } from "../../src/lib/storage/paths"
 import { type TreeSnapshot } from "../../src/lib/storage/schema"
-import { readSnapshot, writeSnapshot } from "../../src/lib/storage/snapshot"
+import { appendChildSession, readSnapshot, writeSnapshot } from "../../src/lib/storage/snapshot"
 
 let projectRoot = ""
 
@@ -73,6 +73,33 @@ describe("readSnapshot", () => {
     )
 
     expect(readSnapshot(projectRoot, "tree_01")).rejects.toBeInstanceOf(StorageSchemaError)
+  })
+})
+
+describe("appendChildSession", () => {
+  test("adds child session under parent anchor", () => {
+    expect(
+      appendChildSession(
+        {
+          version: 1,
+          treeId: "tree_01",
+          rootSessionId: "sess_root",
+          sessions: {
+            sess_root: {
+              sessionId: "sess_root",
+              parentSessionId: null,
+              anchorMessageId: null,
+              children: [],
+            },
+          },
+        },
+        {
+          sessionId: "sess_child",
+          parentSessionId: "sess_root",
+          anchorMessageId: "msg_01",
+        },
+      ),
+    ).toEqual(snapshot)
   })
 })
 
