@@ -78,6 +78,7 @@ function createMessageRow(input: {
 const transcripts: SessionTranscriptMap = {
   sess_root: {
     sessionId: "sess_root",
+    status: "available",
     messages: [
       {
         info: createUserMessage("msg_user", "sess_root", 10),
@@ -95,6 +96,7 @@ const transcripts: SessionTranscriptMap = {
   },
   sess_leaf: {
     sessionId: "sess_leaf",
+    status: "available",
     messages: [
       {
         info: createUserMessage("msg_leaf_user", "sess_leaf", 10),

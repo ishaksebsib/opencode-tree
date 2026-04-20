@@ -6,8 +6,11 @@ export type SessionMessageRecord = {
   readonly parts: readonly Part[]
 }
 
+export type SessionTranscriptStatus = "available" | "deleted"
+
 export type SessionTranscript = {
   readonly sessionId: string
+  readonly status: SessionTranscriptStatus
   readonly messages: readonly SessionMessageRecord[]
 }
 
@@ -20,6 +23,7 @@ export type LoadSessionMessagesPageInput = {
 }
 
 export type SessionMessagesPage = {
+  readonly status: SessionTranscriptStatus
   readonly items: readonly SessionMessageRecord[]
   readonly nextCursor?: string
 }
@@ -70,9 +74,23 @@ export function createSessionMessagesPageLoader(
       before: input.before,
     })
 
+    const statusCode = result.response?.status
+
+    if (statusCode === 404 || isNotFoundError(result.error)) {
+      return {
+        status: "deleted",
+        items: [],
+      }
+    }
+
+    if (result.error) {
+      throw createSessionMessagesLoadError(input.sessionId, result.error, statusCode)
+    }
+
     return {
+      status: "available",
       items: normalizePageItems((result.data ?? []).map((item) => ({ info: item.info, parts: item.parts }))),
-      nextCursor: result.response.headers.get("x-next-cursor") ?? undefined,
+      nextCursor: result.response?.headers.get("x-next-cursor") ?? undefined,
     }
   }
 }
@@ -94,6 +112,14 @@ export async function loadSessionTranscript(
       limit: pageSize,
     })
 
+    if (page.status === "deleted") {
+      return {
+        sessionId,
+        status: "deleted",
+        messages: [],
+      }
+    }
+
     for (const item of page.items) {
       messagesById.set(item.info.id, item)
     }
@@ -101,6 +127,7 @@ export async function loadSessionTranscript(
     if (!page.nextCursor) {
       return {
         sessionId,
+        status: "available",
         messages: sortTranscriptMessages(messagesById.values()),
       }
     }
@@ -162,4 +189,50 @@ export function getMessageTextReplay(parts: readonly Part[]): string | undefined
   }, "")
 
   return text.length > 0 ? text : undefined
+}
+
+function isNotFoundError(error: unknown): error is { readonly name: "NotFoundError"; readonly data?: { readonly message?: string } } {
+  return typeof error === "object" && error !== null && "name" in error && error.name === "NotFoundError"
+}
+
+function createSessionMessagesLoadError(sessionId: string, error: unknown, statusCode?: number): Error {
+  const prefix = `Failed to load messages for session ${sessionId}`
+  const message = getSessionMessagesLoadErrorMessage(error)
+
+  if (statusCode !== undefined && message) {
+    return new Error(`${prefix} (${statusCode}): ${message}`)
+  }
+
+  if (statusCode !== undefined) {
+    return new Error(`${prefix} (${statusCode})`)
+  }
+
+  if (message) {
+    return new Error(`${prefix}: ${message}`)
+  }
+
+  return new Error(prefix)
+}
+
+function getSessionMessagesLoadErrorMessage(error: unknown): string | undefined {
+  if (isNotFoundError(error)) {
+    return error.data?.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  if (typeof error === "object" && error !== null && "data" in error) {
+    const data = error.data
+    if (typeof data === "object" && data !== null && "message" in data && typeof data.message === "string") {
+      return data.message
+    }
+  }
+
+  return undefined
 }

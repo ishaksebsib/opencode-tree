@@ -151,6 +151,7 @@ describe("buildFlatRows preview", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createAssistantMessage("msg_tool", "sess_root", 10),
@@ -187,6 +188,7 @@ describe("buildFlatRows preview", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createAssistantMessage("msg_reasoning", "sess_root", 10),
@@ -213,6 +215,7 @@ describe("buildFlatRows preview", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createUserMessage("msg_user", "sess_root", 10),

@@ -136,6 +136,7 @@ function createTranscript(
 ): SessionTranscript {
   return {
     sessionId,
+    status: "available",
     messages: messages.map((message) => ({
       info: createUserMessage(message.id, sessionId, message.created),
       parts: [createTextPart(message.id, sessionId, message.text)],
@@ -253,6 +254,7 @@ describe("projectSessionTree", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createUserMessage("msg_hello", "sess_root", 10),
@@ -274,6 +276,7 @@ describe("projectSessionTree", () => {
       },
       sess_child: {
         sessionId: "sess_child",
+        status: "available",
         messages: [
           {
             info: createUserMessage("msg_clone_1", "sess_child", 10),
@@ -333,6 +336,7 @@ describe("projectSessionTree", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createUserMessage("msg_user", "sess_root", 10),
@@ -350,6 +354,7 @@ describe("projectSessionTree", () => {
       },
       sess_child: {
         sessionId: "sess_child",
+        status: "available",
         messages: [
           {
             info: createUserMessage("msg_clone_user", "sess_child", 10),
@@ -397,6 +402,7 @@ describe("projectSessionTree", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createAssistantMessage("msg_tool", "sess_root", 10),
@@ -440,6 +446,7 @@ describe("projectSessionTree", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [
           {
             info: createAssistantMessage("msg_reasoning", "sess_root", 10),

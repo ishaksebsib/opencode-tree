@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { Message, Part, UserMessage } from "@opencode-ai/sdk/v2"
+import type { OpencodeClient, Part, UserMessage } from "@opencode-ai/sdk/v2"
 import {
+  createSessionMessagesPageLoader,
   getMessageTextReplay,
   getNextSessionMessageRecord,
   getSessionMessageRecord,
@@ -42,6 +43,7 @@ describe("loadSessionTranscript", () => {
 
         if (!input.before) {
           return {
+            status: "available",
             items: [
               createMessageRecord("msg_03", "sess_root", 30),
               createMessageRecord("msg_04", "sess_root", 40),
@@ -51,6 +53,7 @@ describe("loadSessionTranscript", () => {
         }
 
         return {
+          status: "available",
           items: [
             createMessageRecord("msg_01", "sess_root", 10),
             createMessageRecord("msg_02", "sess_root", 20),
@@ -67,6 +70,7 @@ describe("loadSessionTranscript", () => {
 
     expect(transcript).toEqual({
       sessionId: "sess_root",
+      status: "available",
       messages: [
         createMessageRecord("msg_01", "sess_root", 10),
         createMessageRecord("msg_02", "sess_root", 20),
@@ -74,6 +78,90 @@ describe("loadSessionTranscript", () => {
         createMessageRecord("msg_04", "sess_root", 40),
       ],
     })
+  })
+
+  test("returns deleted transcript when loader reports missing session", async () => {
+    const transcript = await loadSessionTranscript("sess_deleted", async () => ({
+      status: "deleted",
+      items: [],
+    }))
+
+    expect(transcript).toEqual({
+      sessionId: "sess_deleted",
+      status: "deleted",
+      messages: [],
+    })
+  })
+})
+
+function createMessagesResult(input: {
+  status: number
+  data?: Array<{ info: UserMessage; parts: Part[] }>
+  error?: unknown
+  nextCursor?: string
+}) {
+  const headers = new Headers()
+  if (input.nextCursor) {
+    headers.set("x-next-cursor", input.nextCursor)
+  }
+
+  return {
+    data: input.data,
+    error: input.error,
+    request: new Request("http://localhost/session/test/message"),
+    response: new Response(null, { status: input.status, headers }),
+  }
+}
+
+function createMessagesClient(result: ReturnType<typeof createMessagesResult>): OpencodeClient {
+  return {
+    session: {
+      messages: async () => result,
+    },
+  } as unknown as OpencodeClient
+}
+
+
+describe("createSessionMessagesPageLoader", () => {
+  test("treats 404 session message responses as deleted sessions", async () => {
+    const loadPage = createSessionMessagesPageLoader(
+      createMessagesClient(
+        createMessagesResult({
+          status: 404,
+          error: {
+            name: "NotFoundError",
+            data: {
+              message: "Session not found",
+            },
+          },
+        }),
+      ),
+    )
+
+    await expect(loadPage({ sessionId: "sess_deleted", limit: 100 })).resolves.toEqual({
+      status: "deleted",
+      items: [],
+    })
+  })
+
+  test("throws on non-404 message loading failures", async () => {
+    const loadPage = createSessionMessagesPageLoader(
+      createMessagesClient(
+        createMessagesResult({
+          status: 400,
+          error: {
+            name: "BadRequestError",
+            data: {
+              message: "Bad cursor",
+            },
+          },
+        }),
+      ),
+    )
+
+    await expect(loadPage({ sessionId: "sess_root", limit: 100 })).rejects.toThrow(
+      "Failed to load messages for session sess_root (400): Bad cursor",
+    )
   })
 })
 
@@ -95,6 +183,7 @@ describe("message helpers", () => {
 
     const transcripts = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) => ({
       sessionId,
+      status: "available",
       messages: [createMessageRecord("msg_01", sessionId, 1), createMessageRecord("msg_02", sessionId, 2)],
     }))
 
@@ -157,16 +246,19 @@ describe("loadSnapshotSessionTranscripts", () => {
 
     const loaded = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) => ({
       sessionId,
+      status: "available",
       messages: [createMessageRecord(`msg_${sessionId}`, sessionId, 1)],
     }))
 
     expect(loaded).toEqual({
       sess_child: {
         sessionId: "sess_child",
+        status: "available",
         messages: [createMessageRecord("msg_sess_child", "sess_child", 1)],
       },
       sess_root: {
         sessionId: "sess_root",
+        status: "available",
         messages: [createMessageRecord("msg_sess_root", "sess_root", 1)],
       },
     })
