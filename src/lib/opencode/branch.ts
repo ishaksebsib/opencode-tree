@@ -40,6 +40,10 @@ export async function executeTreeBranchAction(
 ): Promise<void> {
   const storage = dependencies.storage ?? defaultStorage
 
+  if (input.action.kind === "noop") {
+    return
+  }
+
   if (input.action.kind === "show-notice") {
     await dependencies.client.tui.showToast({
       directory: input.projectRoot,

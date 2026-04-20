@@ -130,6 +130,30 @@ describe("executeTreeBranchAction", () => {
     expect(client.tui.appendPrompt).not.toHaveBeenCalled()
   })
 
+  test("does nothing for noop action", async () => {
+    const client = createClient()
+    const navigateToSession = mock(() => {})
+
+    await executeTreeBranchAction(
+      {
+        action: {
+          kind: "noop",
+        },
+        projectRoot: "/repo",
+        snapshot,
+      },
+      {
+        client,
+        navigateToSession,
+      },
+    )
+
+    expect(navigateToSession).not.toHaveBeenCalled()
+    expect(client.session.fork).not.toHaveBeenCalled()
+    expect(client.tui.appendPrompt).not.toHaveBeenCalled()
+    expect(client.tui.showToast).not.toHaveBeenCalled()
+  })
+
   test("shows toast for notice action", async () => {
     const client = createClient()
 

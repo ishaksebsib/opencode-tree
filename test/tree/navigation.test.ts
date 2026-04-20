@@ -10,7 +10,6 @@ const rows: readonly TreeFlatRow[] = [
     sessionId: "sess_root",
     currentSessionId: "sess_child",
     title: "sess_root",
-    isCurrentSession: false,
     isDeleted: false,
   },
   {
@@ -21,7 +20,6 @@ const rows: readonly TreeFlatRow[] = [
     currentSessionId: "sess_child",
     messageId: "msg_root",
     role: "user",
-    label: "user",
     preview: "root prompt",
   },
   {
@@ -31,7 +29,6 @@ const rows: readonly TreeFlatRow[] = [
     sessionId: "sess_child",
     currentSessionId: "sess_child",
     title: "sess_child",
-    isCurrentSession: true,
     isDeleted: false,
   },
   {
@@ -42,7 +39,6 @@ const rows: readonly TreeFlatRow[] = [
     currentSessionId: "sess_child",
     messageId: "msg_child",
     role: "assistant",
-    label: "assistant",
     preview: "child reply",
   },
 ]

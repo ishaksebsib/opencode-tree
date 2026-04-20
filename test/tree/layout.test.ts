@@ -11,7 +11,6 @@ function createMessageRow(depth: number, preview: string): MessageFlatRow {
     currentSessionId: "sess_other",
     messageId: `msg_${depth}`,
     role: "user",
-    label: "user",
     preview,
   }
 }
@@ -24,7 +23,6 @@ function createSessionRow(isDeleted = false): SessionFlatRow {
     sessionId: "sess_root_child_very_long",
     currentSessionId: "sess_root_child_very_long",
     title: "sess_root_child_very_long",
-    isCurrentSession: true,
     isDeleted,
   }
 }

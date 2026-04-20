@@ -19,6 +19,9 @@ export type TreeBranchAction =
       readonly sessionId: string
     }
   | {
+      readonly kind: "noop"
+    }
+  | {
       readonly kind: "show-notice"
       readonly message: string
       readonly variant: "info" | "success" | "warning" | "error"
@@ -39,11 +42,16 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
     }
   }
 
-  if (row.kind !== "message") {
+  if (row.kind === "session") {
+    if (row.isDeleted) {
+      return {
+        kind: "noop",
+      }
+    }
+
     return {
-      kind: "show-notice",
-      message: "Select a user or assistant message to branch.",
-      variant: "info",
+      kind: "switch-session",
+      sessionId: row.sessionId,
     }
   }
 

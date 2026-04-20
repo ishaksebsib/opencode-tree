@@ -70,7 +70,6 @@ function createMessageRow(input: {
     currentSessionId: input.currentSessionId,
     messageId: input.messageId,
     role: input.role,
-    label: input.role,
     preview: input.role,
   }
 }
@@ -167,7 +166,7 @@ describe("planTreeBranchAction", () => {
     })
   })
 
-  test("shows notice for non-message rows", () => {
+  test("switches to live session when session row is selected", () => {
     expect(
       planTreeBranchAction({
         row: {
@@ -175,17 +174,34 @@ describe("planTreeBranchAction", () => {
           id: "session:sess_root",
           depth: 0,
           sessionId: "sess_root",
-          currentSessionId: "sess_root",
+          currentSessionId: "sess_leaf",
           title: "sess_root",
-          isCurrentSession: true,
           isDeleted: false,
         },
         transcripts,
       }),
     ).toEqual({
-      kind: "show-notice",
-      message: "Select a user or assistant message to branch.",
-      variant: "info",
+      kind: "switch-session",
+      sessionId: "sess_root",
+    })
+  })
+
+  test("does nothing for deleted session rows", () => {
+    expect(
+      planTreeBranchAction({
+        row: {
+          kind: "session",
+          id: "session:sess_deleted",
+          depth: 0,
+          sessionId: "sess_deleted",
+          currentSessionId: "sess_root",
+          title: "sess_deleted",
+          isDeleted: true,
+        },
+        transcripts,
+      }),
+    ).toEqual({
+      kind: "noop",
     })
   })
 })

@@ -8,7 +8,6 @@ export type SessionFlatRow = {
   readonly sessionId: string
   readonly currentSessionId: string
   readonly title: string
-  readonly isCurrentSession: boolean
   readonly isDeleted: boolean
 }
 
@@ -20,7 +19,6 @@ export type MessageFlatRow = {
   readonly currentSessionId: string
   readonly messageId: string
   readonly role: ProjectedMessageNode["record"]["info"]["role"]
-  readonly label: string
   readonly preview: string
 }
 
@@ -63,7 +61,6 @@ function flattenSession(
       sessionId: session.sessionId,
       currentSessionId,
       title: session.sessionId,
-      isCurrentSession: session.sessionId === currentSessionId,
       isDeleted: session.status === "deleted",
     },
   )
@@ -84,7 +81,6 @@ function flattenSession(
         currentSessionId,
         messageId: message.messageId,
         role: message.record.info.role,
-        label: message.record.info.role,
         preview: getMessagePreview(message),
       },
     )
