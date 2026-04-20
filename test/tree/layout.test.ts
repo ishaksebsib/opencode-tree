@@ -62,7 +62,7 @@ describe("tree layout", () => {
       width: 28,
     })
 
-    expect(row).toBe("›• SESSION [CURRENT]: sess_…")
+    expect(row).toBe("›  SESSION [CURRENT]: sess_…")
     expect(row.length).toBe(28)
   })
 
@@ -76,4 +76,5 @@ describe("tree layout", () => {
 
     expect(row).toBe("   SESSION [DELETED]: sess_root_child_very_long")
   })
+
 })

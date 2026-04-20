@@ -3,6 +3,7 @@ import type { TreeFlatRow } from "./flatten"
 export const TREE_ROUTE_HORIZONTAL_PADDING = 2
 
 const INDENT_UNIT = "  "
+const GUIDE_MARKER = "│"
 const SESSION_PREFIX = "SESSION"
 const CURRENT_SESSION_SUFFIX = " [CURRENT]"
 const DELETED_SESSION_SUFFIX = " [DELETED]"
@@ -18,7 +19,12 @@ export function getTreeContentWidth(viewportWidth: number): number {
   return Math.max(1, viewportWidth - TREE_ROUTE_HORIZONTAL_PADDING)
 }
 
-export function formatTreeRow(input: FormatTreeRowInput): string {
+export type FormattedTreeRow = {
+  readonly prefix: string
+  readonly body: string
+}
+
+export function formatTreeRowParts(input: FormatTreeRowInput): FormattedTreeRow {
   const width = Math.max(1, input.width)
   const prefix = formatRowPrefix(input.row.depth, input.selected, input.current)
 
@@ -28,14 +34,25 @@ export function formatTreeRow(input: FormatTreeRowInput): string {
     const titleWidth = Math.max(0, width - prefix.length - label.length - 1)
     const title = truncateToWidth(input.row.title, titleWidth)
     const body = title ? `${label} ${title}` : label
-    return truncateToWidth(`${prefix}${body}`, width)
+    return {
+      prefix,
+      body: truncateToWidth(body, Math.max(0, width - prefix.length)),
+    }
   }
 
   const label = `${input.row.role}: `
   const previewWidth = Math.max(0, width - prefix.length - label.length)
   const preview = truncateToWidth(input.row.preview, previewWidth)
   const body = preview ? `${label}${preview}` : label.trimEnd()
-  return truncateToWidth(`${prefix}${body}`, width)
+  return {
+    prefix,
+    body: truncateToWidth(body, Math.max(0, width - prefix.length)),
+  }
+}
+
+export function formatTreeRow(input: FormatTreeRowInput): string {
+  const parts = formatTreeRowParts(input)
+  return `${parts.prefix}${parts.body}`
 }
 
 function formatSessionSuffix(row: Extract<TreeFlatRow, { kind: "session" }>, current: boolean): string {
@@ -55,7 +72,7 @@ function formatSessionSuffix(row: Extract<TreeFlatRow, { kind: "session" }>, cur
 function formatRowPrefix(depth: number, selected: boolean, current: boolean): string {
   const indent = INDENT_UNIT.repeat(depth)
   const selectedMarker = selected ? "›" : " "
-  const currentMarker = current ? "•" : " "
+  const currentMarker = current && !selected ? GUIDE_MARKER : " "
   return `${selectedMarker}${currentMarker} ${indent}`
 }
 
