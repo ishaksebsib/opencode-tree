@@ -21,11 +21,21 @@ export async function writeRegistry(projectRoot: string, registry: TreeRegistry)
 }
 
 export function registerSessionTree(registry: TreeRegistry, sessionId: string, treeId: string): TreeRegistry {
-  return {
-    ...registry,
-    sessions: {
-      ...registry.sessions,
-      [sessionId]: treeId,
-    },
+  const existingTreeId = registry.sessions[sessionId]
+
+  if (!existingTreeId) {
+    return {
+      ...registry,
+      sessions: {
+        ...registry.sessions,
+        [sessionId]: treeId,
+      },
+    }
   }
+
+  if (existingTreeId === treeId) {
+    return registry
+  }
+
+  throw new Error(`Session ${sessionId} is already registered to tree ${existingTreeId}`)
 }

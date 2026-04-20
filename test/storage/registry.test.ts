@@ -64,6 +64,32 @@ describe("registerSessionTree", () => {
       },
     })
   })
+
+  test("returns original registry for duplicate same-tree mapping", () => {
+    const registry = {
+      version: 1,
+      sessions: {
+        sess_root: "tree_01",
+      },
+    } as const
+
+    expect(registerSessionTree(registry, "sess_root", "tree_01")).toBe(registry)
+  })
+
+  test("throws for conflicting tree mapping", () => {
+    expect(() =>
+      registerSessionTree(
+        {
+          version: 1,
+          sessions: {
+            sess_root: "tree_01",
+          },
+        },
+        "sess_root",
+        "tree_02",
+      ),
+    ).toThrow("Session sess_root is already registered to tree tree_01")
+  })
 })
 
 describe("writeRegistry", () => {

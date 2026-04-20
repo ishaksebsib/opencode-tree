@@ -26,8 +26,19 @@ export function appendChildSession(
     throw new Error(`Missing parent session ${input.parentSessionId}`)
   }
 
-  if (snapshot.sessions[input.sessionId]) {
-    throw new Error(`Session ${input.sessionId} already exists in snapshot`)
+  const existingSession = snapshot.sessions[input.sessionId]
+  if (existingSession) {
+    const sameParent = existingSession.parentSessionId === input.parentSessionId
+    const sameAnchor = existingSession.anchorMessageId === input.anchorMessageId
+    const listedByParent = parent.children.includes(input.sessionId)
+
+    if (sameParent && sameAnchor && listedByParent) {
+      return snapshot
+    }
+
+    throw new Error(
+      `Session ${input.sessionId} is already attached to parent ${existingSession.parentSessionId ?? "<root>"} at anchor ${existingSession.anchorMessageId ?? "<root>"}`,
+    )
   }
 
   return {

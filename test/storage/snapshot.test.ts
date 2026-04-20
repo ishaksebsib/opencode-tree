@@ -101,6 +101,26 @@ describe("appendChildSession", () => {
       ),
     ).toEqual(snapshot)
   })
+
+  test("returns original snapshot for duplicate same attachment", () => {
+    expect(
+      appendChildSession(snapshot, {
+        sessionId: "sess_child",
+        parentSessionId: "sess_root",
+        anchorMessageId: "msg_01",
+      }),
+    ).toBe(snapshot)
+  })
+
+  test("throws for conflicting duplicate attachment", () => {
+    expect(() =>
+      appendChildSession(snapshot, {
+        sessionId: "sess_child",
+        parentSessionId: "sess_root",
+        anchorMessageId: "msg_other",
+      }),
+    ).toThrow("Session sess_child is already attached to parent sess_root at anchor msg_01")
+  })
 })
 
 describe("writeSnapshot", () => {
