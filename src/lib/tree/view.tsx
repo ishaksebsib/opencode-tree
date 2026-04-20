@@ -2,7 +2,7 @@
 
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core"
 import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
-import { createEffect, createMemo, For } from "solid-js"
+import { createEffect, createMemo, For, on, onCleanup, onMount } from "solid-js"
 import type { TreeFlatRow } from "./flatten"
 import { formatTreeRowParts } from "./layout"
 import { getTreeRowBackground, getTreeRowBorder, getTreeRowForeground, mapTreeTheme } from "./theme"
@@ -16,6 +16,7 @@ export type TreeViewProps = {
 
 export function TreeView(props: TreeViewProps) {
   let scroll: ScrollBoxRenderable | undefined
+  let pendingScrollTimeout: ReturnType<typeof setTimeout> | undefined
 
   const selectedRowId = createMemo(() => {
     const index = props.selectedIndex
@@ -23,17 +24,51 @@ export function TreeView(props: TreeViewProps) {
     return props.rows[index]?.id
   })
 
-  createEffect(() => {
+  const clearPendingScroll = () => {
+    if (pendingScrollTimeout === undefined) return
+    clearTimeout(pendingScrollTimeout)
+    pendingScrollTimeout = undefined
+  }
+
+  const scheduleScrollIntoView = (rowId: string) => {
+    clearPendingScroll()
+
+    const scrollIntoViewWhenReady = () => {
+      pendingScrollTimeout = undefined
+      if (!scroll) return
+
+      const child = scroll.content.findDescendantById(rowId)
+      if (!child || scroll.viewport.height <= 0 || child.height <= 0) {
+        pendingScrollTimeout = setTimeout(scrollIntoViewWhenReady, 0)
+        return
+      }
+
+      scroll.scrollChildIntoView(rowId)
+    }
+
+    pendingScrollTimeout = setTimeout(scrollIntoViewWhenReady, 0)
+  }
+
+	// scroll to last session message when mounting
+  onMount(() => {
     const rowId = selectedRowId()
     if (!rowId) return
+    scheduleScrollIntoView(rowId)
+  })
 
-    queueMicrotask(() => {
-      scroll?.scrollChildIntoView(rowId)
-    })
+  createEffect(
+    on(selectedRowId, (rowId) => {
+      if (!rowId) return
+      scheduleScrollIntoView(rowId)
+    }, { defer: true }),
+  )
+
+  onCleanup(() => {
+    clearPendingScroll()
   })
 
   return (
-    <scrollbox ref={(renderable: ScrollBoxRenderable) => (scroll = renderable)} flexGrow={1} width="100%" scrollbarOptions={{ visible: false }}>
+    <scrollbox ref={(renderable: ScrollBoxRenderable) => (scroll = renderable)} flexGrow={1} minHeight={0} width="100%" scrollbarOptions={{ visible: false }}>
       <box flexDirection="column" gap={0} width="100%">
         <For each={props.rows}>
           {(row, index) => {
