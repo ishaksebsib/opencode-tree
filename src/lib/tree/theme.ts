@@ -24,12 +24,12 @@ export type TreeRowStyleState = {
 export function mapTreeTheme(theme: TuiThemeCurrent): TreeThemePalette {
   return {
     screenBackground: theme.background,
-    panelBackground: theme.backgroundPanel,
+    panelBackground: theme.background,
     panelBorder: theme.borderSubtle,
     selectedRowBackground: theme.backgroundElement,
     selectedRowBorder: theme.borderActive,
     helpText: theme.textMuted,
-    helpKey: theme.accent,
+    helpKey: theme.text,
     loadingText: theme.info,
     emptyText: theme.textMuted,
     errorText: theme.error,
@@ -41,20 +41,19 @@ export function mapTreeTheme(theme: TuiThemeCurrent): TreeThemePalette {
 export function getTreeRowForeground(
   theme: TuiThemeCurrent,
   row: TreeFlatRow,
-  state: TreeRowStyleState,
+  _state: TreeRowStyleState,
 ): TuiThemeCurrent["text"] {
   if (row.kind === "session") {
     if (row.isDeleted) return theme.error
-    if (state.current) return theme.accent
-    return theme.primary
-  }
-
-  if (row.role === "assistant") {
     return theme.secondary
   }
 
+  if (row.role === "assistant") {
+    return theme.textMuted
+  }
+
   if (row.role === "user") {
-    return state.current ? theme.text : theme.textMuted
+    return theme.primary
   }
 
   return theme.text

@@ -3,9 +3,9 @@ import type { TreeFlatRow } from "./flatten"
 export const TREE_ROUTE_HORIZONTAL_PADDING = 2
 
 const INDENT_UNIT = "  "
-const SESSION_PREFIX = "session "
-const CURRENT_SESSION_SUFFIX = " [current]"
-const DELETED_SESSION_SUFFIX = " [Deleted]"
+const SESSION_PREFIX = "SESSION"
+const CURRENT_SESSION_SUFFIX = " [CURRENT]"
+const DELETED_SESSION_SUFFIX = " [DELETED]"
 
 export type FormatTreeRowInput = {
   readonly row: TreeFlatRow
@@ -24,9 +24,10 @@ export function formatTreeRow(input: FormatTreeRowInput): string {
 
   if (input.row.kind === "session") {
     const suffix = formatSessionSuffix(input.row, input.current)
-    const titleWidth = Math.max(0, width - prefix.length - SESSION_PREFIX.length - suffix.length)
+    const label = `${SESSION_PREFIX}${suffix}:`
+    const titleWidth = Math.max(0, width - prefix.length - label.length - 1)
     const title = truncateToWidth(input.row.title, titleWidth)
-    const body = title ? `${SESSION_PREFIX}${title}${suffix}` : `${SESSION_PREFIX.trimEnd()}${suffix}`
+    const body = title ? `${label} ${title}` : label
     return truncateToWidth(`${prefix}${body}`, width)
   }
 

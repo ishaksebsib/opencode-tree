@@ -161,17 +161,25 @@ export function TreeRoute(props: TreeRouteProps) {
   })
 
   return (
-    <box flexDirection="column" width="100%" height="100%" padding={1} gap={1} backgroundColor={palette().screenBackground}>
+    <box
+      flexDirection="column"
+      width="100%"
+      height="100%"
+      paddingLeft={1}
+      paddingRight={1}
+      paddingTop={0}
+      paddingBottom={1}
+      gap={0}
+      backgroundColor={palette().screenBackground}
+    >
       <box
         flexDirection="row"
         gap={1}
         paddingLeft={1}
         paddingRight={1}
         paddingTop={1}
-        paddingBottom={1}
+        paddingBottom={2}
         backgroundColor={palette().panelBackground}
-        borderColor={palette().panelBorder}
-        border={rows().length > 0 ? ["bottom"] : undefined}
       >
         <text fg={branching() ? palette().branchingText : palette().helpText}>
           <span style={{ fg: palette().helpKey }}>↑/↓</span> move • <span style={{ fg: palette().helpKey }}>j/k</span> move •{" "}
@@ -183,50 +191,50 @@ export function TreeRoute(props: TreeRouteProps) {
       </box>
 
       <Show when={actionErrorMessage()}>
-        <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+        <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
           <text fg={palette().errorText}>Branch error: {actionErrorMessage()}</text>
         </box>
       </Show>
 
       <Switch>
         <Match when={!props.projectRoot}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().noticeText}>Project root unavailable.</text>
           </box>
         </Match>
 
         <Match when={bootstrap.loading}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().loadingText}>Loading tree ownership...</text>
           </box>
         </Match>
 
         <Match when={bootstrapErrorMessage()}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().errorText}>Bootstrap error: {bootstrapErrorMessage()}</text>
           </box>
         </Match>
 
         <Match when={bootstrap()?.kind === "missing-session-context"}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().noticeText}>Open /tree from session route.</text>
           </box>
         </Match>
 
         <Match when={projectedInput() && projectedTreeData.loading}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().loadingText}>Loading session messages...</text>
           </box>
         </Match>
 
         <Match when={projectedErrorMessage()}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().errorText}>Projection error: {projectedErrorMessage()}</text>
           </box>
         </Match>
 
         <Match when={rows().length === 0}>
-          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
             <text fg={palette().emptyText}>Tree empty.</text>
           </box>
         </Match>

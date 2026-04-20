@@ -62,11 +62,11 @@ describe("tree layout", () => {
       width: 28,
     })
 
-    expect(row).toBe("›• session sess_r… [current]")
+    expect(row).toBe("›• SESSION [CURRENT]: sess_…")
     expect(row.length).toBe(28)
   })
 
-  test("renders deleted session suffix", () => {
+  test("renders deleted session indicator before title", () => {
     const row = formatTreeRow({
       row: createSessionRow(true),
       selected: false,
@@ -74,6 +74,6 @@ describe("tree layout", () => {
       width: 48,
     })
 
-    expect(row).toBe("   session sess_root_child_very_long [Deleted]")
+    expect(row).toBe("   SESSION [DELETED]: sess_root_child_very_long")
   })
 })
