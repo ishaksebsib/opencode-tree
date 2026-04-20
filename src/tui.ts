@@ -43,6 +43,7 @@ const tui: TuiPlugin = async (api) => {
         return createComponent(TreeRoute, {
           client: api.client,
           projectRoot,
+          theme: () => api.theme.current,
           loadSessionTranscripts: createSnapshotSessionTranscriptsLoader(api.client, {
             directory: projectRoot,
           }),

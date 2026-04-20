@@ -1,23 +1,26 @@
 /** @jsxImportSource @opentui/solid */
 
+import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
 import { executeTreeBranchAction } from "../opencode/branch"
 import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
+import { bootstrapTree } from "./bootstrap"
 import { planTreeBranchAction } from "./branch"
 import type { FlatTreeRows, TreeFlatRow } from "./flatten"
 import { buildFlatRows } from "./flatten"
-import { bootstrapTree } from "./bootstrap"
+import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
-import { getTreeContentWidth } from "./layout"
+import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
 
 export type TreeRouteProps = {
   readonly client: OpencodeClient
   readonly projectRoot?: string
   readonly sessionID?: string
+  readonly theme: () => TuiThemeCurrent
   readonly loadSessionTranscripts: LoadSnapshotSessionTranscripts
   readonly navigateToSession: (sessionId: string) => void | Promise<void>
 }
@@ -27,6 +30,9 @@ export function TreeRoute(props: TreeRouteProps) {
   const [branching, setBranching] = createSignal(false)
   const [actionErrorMessage, setActionErrorMessage] = createSignal<string | undefined>()
   const dimensions = useTerminalDimensions()
+
+  const theme = createMemo(() => props.theme())
+  const palette = createMemo(() => mapTreeTheme(theme()))
 
   const bootstrapInput = createMemo(() => {
     if (!props.projectRoot) return undefined
@@ -155,43 +161,79 @@ export function TreeRoute(props: TreeRouteProps) {
   })
 
   return (
-    <box flexDirection="column" width="100%" height="100%" padding={1} gap={1}>
+    <box flexDirection="column" width="100%" height="100%" padding={1} gap={1} backgroundColor={palette().screenBackground}>
+      <box
+        flexDirection="row"
+        gap={1}
+        paddingLeft={1}
+        paddingRight={1}
+        paddingTop={1}
+        paddingBottom={1}
+        backgroundColor={palette().panelBackground}
+        borderColor={palette().panelBorder}
+        border={rows().length > 0 ? ["bottom"] : undefined}
+      >
+        <text fg={branching() ? palette().branchingText : palette().helpText}>
+          <span style={{ fg: palette().helpKey }}>↑/↓</span> move • <span style={{ fg: palette().helpKey }}>j/k</span> move •{" "}
+          <span style={{ fg: palette().helpKey }}>Enter</span> branch • <span style={{ fg: palette().helpKey }}>esc</span> back
+          <Show when={branching()}>
+            <span style={{ fg: palette().branchingText }}> • branching…</span>
+          </Show>
+        </text>
+      </box>
+
+      <Show when={actionErrorMessage()}>
+        <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+          <text fg={palette().errorText}>Branch error: {actionErrorMessage()}</text>
+        </box>
+      </Show>
+
       <Switch>
         <Match when={!props.projectRoot}>
-          <text>Project root unavailable.</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().noticeText}>Project root unavailable.</text>
+          </box>
         </Match>
 
         <Match when={bootstrap.loading}>
-          <text>Loading tree ownership...</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().loadingText}>Loading tree ownership...</text>
+          </box>
         </Match>
 
         <Match when={bootstrapErrorMessage()}>
-          <text>Bootstrap error: {bootstrapErrorMessage()}</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().errorText}>Bootstrap error: {bootstrapErrorMessage()}</text>
+          </box>
         </Match>
 
         <Match when={bootstrap()?.kind === "missing-session-context"}>
-          <text>Open /tree from session route.</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().noticeText}>Open /tree from session route.</text>
+          </box>
         </Match>
 
         <Match when={projectedInput() && projectedTreeData.loading}>
-          <text>Loading session messages...</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().loadingText}>Loading session messages...</text>
+          </box>
         </Match>
 
         <Match when={projectedErrorMessage()}>
-          <text>Projection error: {projectedErrorMessage()}</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().errorText}>Projection error: {projectedErrorMessage()}</text>
+          </box>
         </Match>
 
         <Match when={rows().length === 0}>
-          <text>Tree empty.</text>
+          <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1}>
+            <text fg={palette().emptyText}>Tree empty.</text>
+          </box>
         </Match>
 
         <Match when={rows().length > 0}>
-          <box flexDirection="column" gap={1} flexGrow={1} minHeight={0}>
-            <text>{branching() ? "Branching..." : "Move: ↑/↓ or j/k • Branch: Enter • Back: esc/Ctrl-C"}</text>
-            <Show when={actionErrorMessage()}>
-              <text>Branch error: {actionErrorMessage()}</text>
-            </Show>
-            <TreeView rows={rows()} selectedIndex={selectedIndex()} width={treeWidth()} />
+          <box flexDirection="column" flexGrow={1} minHeight={0} backgroundColor={palette().panelBackground}>
+            <TreeView rows={rows()} selectedIndex={selectedIndex()} width={treeWidth()} theme={theme} />
           </box>
         </Match>
       </Switch>
