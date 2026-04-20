@@ -3,7 +3,7 @@ import type { TreeFlatRow } from "./flatten"
 export const TREE_ROUTE_HORIZONTAL_PADDING = 2
 
 const INDENT_UNIT = "  "
-const GUIDE_MARKER = "│"
+const GUIDE_MARKER = "┃"
 const SESSION_PREFIX = "SESSION"
 const CURRENT_SESSION_SUFFIX = " [CURRENT]"
 const DELETED_SESSION_SUFFIX = " [DELETED]"
