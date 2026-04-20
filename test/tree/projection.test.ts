@@ -384,6 +384,83 @@ describe("projectSessionTree", () => {
     ])
   })
 
+  test("renders deleted session row without messages and keeps descendant sessions visible", () => {
+    const snapshot: TreeSnapshot = {
+      version: 1,
+      treeId: "tree_01",
+      rootSessionId: "sess_root",
+      sessions: {
+        sess_root: {
+          sessionId: "sess_root",
+          parentSessionId: null,
+          anchorMessageId: null,
+          children: ["sess_deleted"],
+        },
+        sess_deleted: {
+          sessionId: "sess_deleted",
+          parentSessionId: "sess_root",
+          anchorMessageId: "msg_anchor",
+          children: ["sess_grandchild"],
+        },
+        sess_grandchild: {
+          sessionId: "sess_grandchild",
+          parentSessionId: "sess_deleted",
+          anchorMessageId: "msg_deleted_anchor",
+          children: [],
+        },
+      },
+    }
+
+    const transcripts: SessionTranscriptMap = {
+      sess_root: {
+        sessionId: "sess_root",
+        status: "available",
+        messages: [
+          {
+            info: createUserMessage("msg_anchor", "sess_root", 10),
+            parts: [createTextPart("msg_anchor", "sess_root", "anchor")],
+          },
+          {
+            info: createAssistantMessage("msg_after", "sess_root", 20, "msg_anchor"),
+            parts: [createTextPart("msg_after", "sess_root", "after")],
+          },
+        ],
+      },
+      sess_deleted: {
+        sessionId: "sess_deleted",
+        status: "deleted",
+        messages: [],
+      },
+      sess_grandchild: {
+        sessionId: "sess_grandchild",
+        status: "available",
+        messages: [
+          {
+            info: createUserMessage("msg_grandchild", "sess_grandchild", 30),
+            parts: [createTextPart("msg_grandchild", "sess_grandchild", "grandchild")],
+          },
+        ],
+      },
+    }
+
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
+
+    expect(rows.map((row) => row.id)).toEqual([
+      "session:sess_root",
+      "message:sess_root:msg_anchor",
+      "session:sess_deleted",
+      "session:sess_grandchild",
+      "message:sess_grandchild:msg_grandchild",
+      "message:sess_root:msg_after",
+    ])
+
+    expect(rows[2]).toMatchObject({
+      kind: "session",
+      sessionId: "sess_deleted",
+      isDeleted: true,
+    })
+  })
+
   test("uses assistant tool preview when no visible text exists", () => {
     const snapshot: TreeSnapshot = {
       version: 1,

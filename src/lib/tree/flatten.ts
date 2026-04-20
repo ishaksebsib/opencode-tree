@@ -9,6 +9,7 @@ export type SessionFlatRow = {
   readonly currentSessionId: string
   readonly title: string
   readonly isCurrentSession: boolean
+  readonly isDeleted: boolean
 }
 
 export type MessageFlatRow = {
@@ -63,8 +64,13 @@ function flattenSession(
       currentSessionId,
       title: session.sessionId,
       isCurrentSession: session.sessionId === currentSessionId,
+      isDeleted: session.status === "deleted",
     },
   )
+
+  for (const childSession of session.childSessions) {
+    flattenSession(rows, lastRowIndexBySessionId, childSession, currentSessionId, depth + 1)
+  }
 
   for (const message of session.messages) {
     pushRow(

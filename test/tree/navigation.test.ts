@@ -11,6 +11,7 @@ const rows: readonly TreeFlatRow[] = [
     currentSessionId: "sess_child",
     title: "sess_root",
     isCurrentSession: false,
+    isDeleted: false,
   },
   {
     kind: "message",
@@ -31,6 +32,7 @@ const rows: readonly TreeFlatRow[] = [
     currentSessionId: "sess_child",
     title: "sess_child",
     isCurrentSession: true,
+    isDeleted: false,
   },
   {
     kind: "message",

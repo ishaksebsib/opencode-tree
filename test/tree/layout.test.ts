@@ -16,7 +16,7 @@ function createMessageRow(depth: number, preview: string): MessageFlatRow {
   }
 }
 
-function createSessionRow(): SessionFlatRow {
+function createSessionRow(isDeleted = false): SessionFlatRow {
   return {
     kind: "session",
     id: "session:sess_root_child_very_long",
@@ -25,6 +25,7 @@ function createSessionRow(): SessionFlatRow {
     currentSessionId: "sess_root_child_very_long",
     title: "sess_root_child_very_long",
     isCurrentSession: true,
+    isDeleted,
   }
 }
 
@@ -65,5 +66,16 @@ describe("tree layout", () => {
 
     expect(row).toBe("›• session sess_r… [current]")
     expect(row.length).toBe(28)
+  })
+
+  test("renders deleted session suffix", () => {
+    const row = formatTreeRow({
+      row: createSessionRow(true),
+      selected: false,
+      current: false,
+      width: 48,
+    })
+
+    expect(row).toBe("   session sess_root_child_very_long [Deleted]")
   })
 })

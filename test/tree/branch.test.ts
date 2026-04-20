@@ -178,6 +178,7 @@ describe("planTreeBranchAction", () => {
           currentSessionId: "sess_root",
           title: "sess_root",
           isCurrentSession: true,
+          isDeleted: false,
         },
         transcripts,
       }),

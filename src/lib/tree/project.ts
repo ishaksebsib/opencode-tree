@@ -12,6 +12,8 @@ export type ProjectedMessageNode = {
 export type ProjectedSessionNode = {
   readonly kind: "session"
   readonly sessionId: string
+  readonly status: SessionTranscript["status"]
+  readonly childSessions: readonly ProjectedSessionNode[]
   readonly messages: readonly ProjectedMessageNode[]
 }
 
@@ -35,6 +37,16 @@ function projectSessionNode(
   const transcript = transcripts[sessionId]
   if (!transcript) {
     throw new Error(`Missing transcript for session ${sessionId}`)
+  }
+
+  if (transcript.status === "deleted") {
+    return {
+      kind: "session",
+      sessionId,
+      status: "deleted",
+      childSessions: snapshotSession.children.map((childSessionId) => projectSessionNode(snapshot, transcripts, childSessionId)),
+      messages: [],
+    }
   }
 
   const hiddenPrefixCount = getHiddenPrefixCount(snapshot, transcripts, sessionId)
@@ -80,6 +92,8 @@ function projectSessionNode(
   return {
     kind: "session",
     sessionId,
+    status: "available",
+    childSessions: [],
     messages,
   }
 }
@@ -101,6 +115,10 @@ function getHiddenPrefixCount(
   const parentTranscript = transcripts[snapshotSession.parentSessionId]
   if (!parentTranscript) {
     throw new Error(`Missing transcript for parent session ${snapshotSession.parentSessionId}`)
+  }
+
+  if (parentTranscript.status === "deleted") {
+    return 0
   }
 
   return getInheritedPrefixCount(parentTranscript, snapshotSession.anchorMessageId)

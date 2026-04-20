@@ -5,6 +5,7 @@ export const TREE_ROUTE_HORIZONTAL_PADDING = 2
 const INDENT_UNIT = "  "
 const SESSION_PREFIX = "session "
 const CURRENT_SESSION_SUFFIX = " [current]"
+const DELETED_SESSION_SUFFIX = " [Deleted]"
 
 export type FormatTreeRowInput = {
   readonly row: TreeFlatRow
@@ -22,7 +23,7 @@ export function formatTreeRow(input: FormatTreeRowInput): string {
   const prefix = formatRowPrefix(input.row.depth, input.selected, input.current)
 
   if (input.row.kind === "session") {
-    const suffix = input.current ? CURRENT_SESSION_SUFFIX : ""
+    const suffix = formatSessionSuffix(input.row, input.current)
     const titleWidth = Math.max(0, width - prefix.length - SESSION_PREFIX.length - suffix.length)
     const title = truncateToWidth(input.row.title, titleWidth)
     const body = title ? `${SESSION_PREFIX}${title}${suffix}` : `${SESSION_PREFIX.trimEnd()}${suffix}`
@@ -34,6 +35,20 @@ export function formatTreeRow(input: FormatTreeRowInput): string {
   const preview = truncateToWidth(input.row.preview, previewWidth)
   const body = preview ? `${label}${preview}` : label.trimEnd()
   return truncateToWidth(`${prefix}${body}`, width)
+}
+
+function formatSessionSuffix(row: Extract<TreeFlatRow, { kind: "session" }>, current: boolean): string {
+  const suffixes = [] as string[]
+
+  if (row.isDeleted) {
+    suffixes.push(DELETED_SESSION_SUFFIX)
+  }
+
+  if (current) {
+    suffixes.push(CURRENT_SESSION_SUFFIX)
+  }
+
+  return suffixes.join("")
 }
 
 function formatRowPrefix(depth: number, selected: boolean, current: boolean): string {
