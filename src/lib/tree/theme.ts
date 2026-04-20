@@ -7,7 +7,7 @@ export type TreeThemePalette = {
   readonly panelBorder: TuiThemeCurrent["borderSubtle"]
   readonly selectedRowBackground: TuiThemeCurrent["backgroundElement"]
   readonly selectedRowBorder: TuiThemeCurrent["borderActive"]
-  readonly guideText: TuiThemeCurrent["borderActive"]
+  readonly guideText: TuiThemeCurrent["primary"]
   readonly helpText: TuiThemeCurrent["textMuted"]
   readonly helpKey: TuiThemeCurrent["accent"]
   readonly loadingText: TuiThemeCurrent["info"]
@@ -29,7 +29,7 @@ export function mapTreeTheme(theme: TuiThemeCurrent): TreeThemePalette {
     panelBorder: theme.borderSubtle,
     selectedRowBackground: theme.backgroundElement,
     selectedRowBorder: theme.borderActive,
-    guideText: theme.borderActive,
+    guideText: theme.primary,
     helpText: theme.textMuted,
     helpKey: theme.text,
     loadingText: theme.info,
