@@ -7,7 +7,7 @@ import { getSnapshotFilePath } from "../../src/lib/storage/paths"
 import { type TreeSnapshot } from "../../src/lib/storage/schema"
 import { appendChildSession, readSnapshot, writeSnapshot } from "../../src/lib/storage/snapshot"
 
-let projectRoot = ""
+let storageRoot = ""
 
 const snapshot: TreeSnapshot = {
   version: 1,
@@ -30,32 +30,32 @@ const snapshot: TreeSnapshot = {
 }
 
 beforeEach(async () => {
-  projectRoot = await mkdtemp(join(tmpdir(), "opencode-tree-snapshot-"))
+  storageRoot = await mkdtemp(join(tmpdir(), "opencode-tree-snapshot-"))
 })
 
 afterEach(async () => {
-  if (projectRoot) {
-    await rm(projectRoot, { recursive: true, force: true })
+  if (storageRoot) {
+    await rm(storageRoot, { recursive: true, force: true })
   }
 })
 
 describe("readSnapshot", () => {
   test("fails for missing snapshot file", async () => {
-    expect(readSnapshot(projectRoot, "tree_01")).rejects.toMatchObject({
+    expect(readSnapshot(storageRoot, "tree_01")).rejects.toMatchObject({
       code: "ENOENT",
     })
   })
 
   test("fails clearly for invalid json", async () => {
-    const filePath = getSnapshotFilePath(projectRoot, "tree_01")
+    const filePath = getSnapshotFilePath(storageRoot, "tree_01")
     await mkdir(dirname(filePath), { recursive: true })
     await writeFile(filePath, "not json", "utf8")
 
-    expect(readSnapshot(projectRoot, "tree_01")).rejects.toBeInstanceOf(StorageJsonParseError)
+    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageJsonParseError)
   })
 
   test("fails clearly for invalid schema", async () => {
-    const filePath = getSnapshotFilePath(projectRoot, "tree_01")
+    const filePath = getSnapshotFilePath(storageRoot, "tree_01")
     await mkdir(dirname(filePath), { recursive: true })
     await writeFile(
       filePath,
@@ -72,7 +72,7 @@ describe("readSnapshot", () => {
       "utf8",
     )
 
-    expect(readSnapshot(projectRoot, "tree_01")).rejects.toBeInstanceOf(StorageSchemaError)
+    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageSchemaError)
   })
 })
 
@@ -125,12 +125,12 @@ describe("appendChildSession", () => {
 
 describe("writeSnapshot", () => {
   test("creates parent dirs and round-trips valid data", async () => {
-    const written = await writeSnapshot(projectRoot, snapshot)
+    const written = await writeSnapshot(storageRoot, snapshot)
     expect(written).toEqual(snapshot)
 
-    expect(readSnapshot(projectRoot, "tree_01")).resolves.toEqual(snapshot)
+    expect(readSnapshot(storageRoot, "tree_01")).resolves.toEqual(snapshot)
 
-    const content = await readFile(getSnapshotFilePath(projectRoot, "tree_01"), "utf8")
+    const content = await readFile(getSnapshotFilePath(storageRoot, "tree_01"), "utf8")
     expect(content.endsWith("\n")).toBe(true)
   })
 
@@ -148,6 +148,6 @@ describe("writeSnapshot", () => {
       }),
     )
 
-    expect(writeSnapshot(projectRoot, invalidSnapshot)).rejects.toBeInstanceOf(StorageSchemaError)
+    expect(writeSnapshot(storageRoot, invalidSnapshot)).rejects.toBeInstanceOf(StorageSchemaError)
   })
 })

@@ -37,8 +37,9 @@ describe("executeTreeBranchAction", () => {
   test("forks, persists tree state, navigates, and appends prompt text", async () => {
     const client = createClient()
     const navigateToSession = mock(() => {})
-    const writeSnapshot = mock(async (_projectRoot: string, nextSnapshot: TreeSnapshot) => nextSnapshot)
-    const writeRegistry = mock(async (_projectRoot: string, nextRegistry: TreeRegistry) => nextRegistry)
+    const storageRoot = "/state/opencode/plugins/opencode-tree/projects/repo-123"
+    const writeSnapshot = mock(async (_storageRoot: string, nextSnapshot: TreeSnapshot) => nextSnapshot)
+    const writeRegistry = mock(async (_storageRoot: string, nextRegistry: TreeRegistry) => nextRegistry)
 
     await executeTreeBranchAction(
       {
@@ -50,6 +51,7 @@ describe("executeTreeBranchAction", () => {
           appendPromptText: "hello branch",
         },
         projectRoot: "/repo",
+        storageRoot,
         snapshot,
       },
       {
@@ -73,7 +75,7 @@ describe("executeTreeBranchAction", () => {
       messageID: "msg_user",
       directory: "/repo",
     })
-    expect(writeSnapshot).toHaveBeenCalledWith("/repo", {
+    expect(writeSnapshot).toHaveBeenCalledWith(storageRoot, {
       version: 1,
       treeId: "tree_01",
       rootSessionId: "sess_root",
@@ -92,7 +94,7 @@ describe("executeTreeBranchAction", () => {
         },
       },
     })
-    expect(writeRegistry).toHaveBeenCalledWith("/repo", {
+    expect(writeRegistry).toHaveBeenCalledWith(storageRoot, {
       version: 1,
       sessions: {
         sess_root: "tree_01",
@@ -117,6 +119,7 @@ describe("executeTreeBranchAction", () => {
           sessionId: "sess_root",
         },
         projectRoot: "/repo",
+        storageRoot: "/state/opencode/plugins/opencode-tree/projects/repo-123",
         snapshot,
       },
       {
@@ -140,6 +143,7 @@ describe("executeTreeBranchAction", () => {
           kind: "noop",
         },
         projectRoot: "/repo",
+        storageRoot: "/state/opencode/plugins/opencode-tree/projects/repo-123",
         snapshot,
       },
       {
@@ -165,6 +169,7 @@ describe("executeTreeBranchAction", () => {
           variant: "info",
         },
         projectRoot: "/repo",
+        storageRoot: "/state/opencode/plugins/opencode-tree/projects/repo-123",
         snapshot,
       },
       {

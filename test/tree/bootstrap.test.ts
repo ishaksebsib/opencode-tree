@@ -5,15 +5,15 @@ import { join } from "node:path"
 import { readRegistry, readSnapshot, writeRegistry, writeSnapshot, type TreeSnapshot } from "../../src/lib/storage"
 import { bootstrapTree, createRootTreeSnapshot } from "../../src/lib/tree/bootstrap"
 
-let projectRoot = ""
+let storageRoot = ""
 
 beforeEach(async () => {
-  projectRoot = await mkdtemp(join(tmpdir(), "opencode-tree-bootstrap-"))
+  storageRoot = await mkdtemp(join(tmpdir(), "opencode-tree-bootstrap-"))
 })
 
 afterEach(async () => {
-  if (projectRoot) {
-    await rm(projectRoot, { recursive: true, force: true })
+  if (storageRoot) {
+    await rm(storageRoot, { recursive: true, force: true })
   }
 })
 
@@ -39,8 +39,8 @@ describe("bootstrapTree", () => {
       },
     }
 
-    await writeSnapshot(projectRoot, snapshot)
-    await writeRegistry(projectRoot, {
+    await writeSnapshot(storageRoot, snapshot)
+    await writeRegistry(storageRoot, {
       version: 1,
       sessions: {
         sess_known: "tree_existing",
@@ -48,13 +48,15 @@ describe("bootstrapTree", () => {
     })
 
     const result = await bootstrapTree({
-      projectRoot,
+      projectRoot: "/repo",
+      storageRoot,
       sessionID: "sess_known",
     })
 
     expect(result).toEqual({
       kind: "found-tree",
-      projectRoot,
+      projectRoot: "/repo",
+      storageRoot,
       treeId: "tree_existing",
       currentSessionId: "sess_known",
       snapshot,
@@ -64,7 +66,8 @@ describe("bootstrapTree", () => {
   test("creates new tree for unknown session", async () => {
     const result = await bootstrapTree(
       {
-        projectRoot,
+        projectRoot: "/repo",
+        storageRoot,
         sessionID: "sess_new",
       },
       {
@@ -82,33 +85,36 @@ describe("bootstrapTree", () => {
 
     expect(result).toEqual({
       kind: "created-tree",
-      projectRoot,
+      projectRoot: "/repo",
+      storageRoot,
       treeId: "tree_created",
       currentSessionId: "sess_new",
       snapshot: expectedSnapshot,
     })
 
-    expect(readRegistry(projectRoot)).resolves.toEqual({
+    expect(readRegistry(storageRoot)).resolves.toEqual({
       version: 1,
       sessions: {
         sess_new: "tree_created",
       },
     })
 
-    expect(readSnapshot(projectRoot, "tree_created")).resolves.toEqual(expectedSnapshot)
+    expect(readSnapshot(storageRoot, "tree_created")).resolves.toEqual(expectedSnapshot)
   })
 
   test("returns missing session context without touching storage", async () => {
     const result = await bootstrapTree({
-      projectRoot,
+      projectRoot: "/repo",
+      storageRoot,
     })
 
     expect(result).toEqual({
       kind: "missing-session-context",
-      projectRoot,
+      projectRoot: "/repo",
+      storageRoot,
     })
 
-    expect(readRegistry(projectRoot)).resolves.toEqual({
+    expect(readRegistry(storageRoot)).resolves.toEqual({
       version: 1,
       sessions: {},
     })
