@@ -16,16 +16,53 @@ export type TreeViewProps = {
   readonly onFocusChange?: (focused: boolean) => void
 }
 
+type RenderedTreeRow = {
+  readonly id: string
+  readonly selected: boolean
+  readonly backgroundColor?: TuiThemeCurrent["backgroundElement"]
+  readonly borderColor?: TuiThemeCurrent["borderActive"]
+  readonly guideColor: TuiThemeCurrent["primary"]
+  readonly foregroundColor: TuiThemeCurrent["text"]
+  readonly attributes?: typeof TextAttributes.BOLD
+  readonly parts: ReturnType<typeof formatTreeRowParts>
+}
+
 export function TreeView(props: TreeViewProps) {
   let scroll: ScrollBoxRenderable | undefined
   let pendingScrollTimeout: ReturnType<typeof setTimeout> | undefined
   const handleFocused = () => props.onFocusChange?.(true)
   const handleBlurred = () => props.onFocusChange?.(false)
 
+  const renderedRows = createMemo<readonly RenderedTreeRow[]>(() => {
+    const theme = props.theme()
+    const guideColor = mapTreeTheme(theme).guideText
+
+    return props.rows.map((row, index) => {
+      const selected = props.selectedIndex === index
+      const current = row.sessionId === row.currentSessionId
+
+      return {
+        id: row.id,
+        selected,
+        backgroundColor: getTreeRowBackground(theme, { selected, current }),
+        borderColor: getTreeRowBorder(theme, { selected, current }),
+        guideColor,
+        foregroundColor: getTreeRowForeground(theme, row, { selected, current }),
+        attributes: selected || current ? TextAttributes.BOLD : undefined,
+        parts: formatTreeRowParts({
+          row,
+          selected,
+          current,
+          width: props.width,
+        }),
+      }
+    })
+  })
+
   const selectedRowId = createMemo(() => {
     const index = props.selectedIndex
     if (index === undefined) return undefined
-    return props.rows[index]?.id
+    return renderedRows()[index]?.id
   })
 
   const clearPendingScroll = () => {
@@ -91,41 +128,24 @@ export function TreeView(props: TreeViewProps) {
       scrollbarOptions={{ visible: false }}
     >
       <box flexDirection="column" gap={0} width="100%">
-        <For each={props.rows}>
-          {(row, index) => {
-            const selected = () => props.selectedIndex === index()
-            const current = () => row.sessionId === row.currentSessionId
-            const attributes = () => (selected() || current() ? TextAttributes.BOLD : undefined)
-            const foreground = () => getTreeRowForeground(props.theme(), row, { selected: selected(), current: current() })
-            const background = () => getTreeRowBackground(props.theme(), { selected: selected(), current: current() })
-            const borderColor = () => getTreeRowBorder(props.theme(), { selected: selected(), current: current() })
-            const guideColor = () => mapTreeTheme(props.theme()).guideText
-            const parts = () =>
-              formatTreeRowParts({
-                row,
-                selected: selected(),
-                current: current(),
-                width: props.width,
-              })
-
-            return (
-              <box
-                id={row.id}
-                width="100%"
-                flexDirection="row"
-                backgroundColor={background()}
-                border={selected() ? ["left"] : undefined}
-                borderColor={borderColor()}
-              >
-                <text wrapMode="none" attributes={attributes()} fg={guideColor()}>
-                  {parts().prefix}
-                </text>
-                <text wrapMode="none" attributes={attributes()} fg={foreground()}>
-                  {parts().body}
-                </text>
-              </box>
-            )
-          }}
+        <For each={renderedRows()}>
+          {(row) => (
+            <box
+              id={row.id}
+              width="100%"
+              flexDirection="row"
+              backgroundColor={row.backgroundColor}
+              border={row.selected ? ["left"] : undefined}
+              borderColor={row.borderColor}
+            >
+              <text wrapMode="none" attributes={row.attributes} fg={row.guideColor}>
+                {row.parts.prefix}
+              </text>
+              <text wrapMode="none" attributes={row.attributes} fg={row.foregroundColor}>
+                {row.parts.body}
+              </text>
+            </box>
+          )}
         </For>
       </box>
     </scrollbox>
