@@ -12,11 +12,15 @@ export type TreeViewProps = {
   readonly selectedIndex?: number
   readonly width: number
   readonly theme: () => TuiThemeCurrent
+  readonly autoFocus?: boolean
+  readonly onFocusChange?: (focused: boolean) => void
 }
 
 export function TreeView(props: TreeViewProps) {
   let scroll: ScrollBoxRenderable | undefined
   let pendingScrollTimeout: ReturnType<typeof setTimeout> | undefined
+  const handleFocused = () => props.onFocusChange?.(true)
+  const handleBlurred = () => props.onFocusChange?.(false)
 
   const selectedRowId = createMemo(() => {
     const index = props.selectedIndex
@@ -51,6 +55,13 @@ export function TreeView(props: TreeViewProps) {
 
 	// scroll to last session message when mounting
   onMount(() => {
+    scroll?.on("focused", handleFocused)
+    scroll?.on("blurred", handleBlurred)
+
+    if (props.autoFocus) {
+      scroll?.focus()
+    }
+
     const rowId = selectedRowId()
     if (!rowId) return
     scheduleScrollIntoView(rowId)
@@ -65,10 +76,20 @@ export function TreeView(props: TreeViewProps) {
 
   onCleanup(() => {
     clearPendingScroll()
+    props.onFocusChange?.(false)
+    scroll?.off("focused", handleFocused)
+    scroll?.off("blurred", handleBlurred)
   })
 
   return (
-    <scrollbox ref={(renderable: ScrollBoxRenderable) => (scroll = renderable)} flexGrow={1} minHeight={0} width="100%" scrollbarOptions={{ visible: false }}>
+    <scrollbox
+      ref={(renderable: ScrollBoxRenderable) => (scroll = renderable)}
+      flexGrow={1}
+      minHeight={0}
+      width="100%"
+      focusable
+      scrollbarOptions={{ visible: false }}
+    >
       <box flexDirection="column" gap={0} width="100%">
         <For each={props.rows}>
           {(row, index) => {

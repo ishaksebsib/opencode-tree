@@ -29,6 +29,7 @@ export function TreeRoute(props: TreeRouteProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | undefined>()
   const [branching, setBranching] = createSignal(false)
   const [actionErrorMessage, setActionErrorMessage] = createSignal<string | undefined>()
+  const [treeFocused, setTreeFocused] = createSignal(false)
   const dimensions = useTerminalDimensions()
 
   const theme = createMemo(() => props.theme())
@@ -102,6 +103,10 @@ export function TreeRoute(props: TreeRouteProps) {
   )
 
   useKeyboard((evt) => {
+    if (evt.defaultPrevented) return
+
+    if (!treeFocused()) return
+
     if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
       if (!props.sessionID) return
       evt.preventDefault()
@@ -241,7 +246,7 @@ export function TreeRoute(props: TreeRouteProps) {
 
         <Match when={rows().length > 0}>
           <box flexDirection="column" flexGrow={1} minHeight={0} backgroundColor={palette().panelBackground}>
-            <TreeView rows={rows()} selectedIndex={selectedIndex()} width={treeWidth()} theme={theme} />
+            <TreeView rows={rows()} selectedIndex={selectedIndex()} width={treeWidth()} theme={theme} autoFocus onFocusChange={setTreeFocused} />
           </box>
         </Match>
       </Switch>
