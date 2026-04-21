@@ -1,9 +1,4 @@
-import type { SessionTranscriptMap } from "../opencode/messages"
-import {
-  getMessageTextReplay,
-  getNextSessionMessageRecord,
-  getSessionMessageRecord,
-} from "../opencode/messages"
+import { getMessageTextReplay, type SessionTranscript, type SessionTranscriptMap } from "../opencode/messages"
 import type { TreeFlatRow } from "./flatten"
 
 export type TreeBranchAction =
@@ -55,7 +50,8 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
     }
   }
 
-  const record = getSessionMessageRecord(input.transcripts, row.sessionId, row.messageId)
+  const transcript = input.transcripts[row.sessionId]
+  const record = transcript?.messageById.get(row.messageId)
   if (!record) {
     return {
       kind: "show-notice",
@@ -74,7 +70,7 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
     }
   }
 
-  const nextRecord = getNextSessionMessageRecord(input.transcripts, row.sessionId, row.messageId)
+  const nextRecord = getNextSessionMessageRecord(transcript, row.messageId)
   if (!nextRecord) {
     return {
       kind: "switch-session",
@@ -88,4 +84,15 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
     anchorMessageId: row.messageId,
     forkMessageId: nextRecord.info.id,
   }
+}
+
+function getNextSessionMessageRecord(
+  transcript: SessionTranscript | undefined,
+  messageId: string,
+) {
+  if (!transcript) return undefined
+
+  const index = transcript.messageIndexById.get(messageId)
+  if (index === undefined) return undefined
+  return transcript.messages[index + 1]
 }

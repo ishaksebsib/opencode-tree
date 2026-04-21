@@ -1,10 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import type { OpencodeClient, Part, UserMessage } from "@opencode-ai/sdk/v2"
 import {
+  createSessionTranscript,
   createSessionMessagesPageLoader,
   getMessageTextReplay,
-  getNextSessionMessageRecord,
-  getSessionMessageRecord,
   loadSessionTranscript,
   loadSnapshotSessionTranscripts,
   type SessionMessageRecord,
@@ -77,6 +76,18 @@ describe("loadSessionTranscript", () => {
         createMessageRecord("msg_03", "sess_root", 30),
         createMessageRecord("msg_04", "sess_root", 40),
       ],
+      messageById: new Map([
+        ["msg_01", createMessageRecord("msg_01", "sess_root", 10)],
+        ["msg_02", createMessageRecord("msg_02", "sess_root", 20)],
+        ["msg_03", createMessageRecord("msg_03", "sess_root", 30)],
+        ["msg_04", createMessageRecord("msg_04", "sess_root", 40)],
+      ]),
+      messageIndexById: new Map([
+        ["msg_01", 0],
+        ["msg_02", 1],
+        ["msg_03", 2],
+        ["msg_04", 3],
+      ]),
     })
   })
 
@@ -86,11 +97,7 @@ describe("loadSessionTranscript", () => {
       items: [],
     }))
 
-    expect(transcript).toEqual({
-      sessionId: "sess_deleted",
-      status: "deleted",
-      messages: [],
-    })
+    expect(transcript).toEqual(createSessionTranscript({ sessionId: "sess_deleted", status: "deleted", messages: [] }))
   })
 })
 
@@ -165,31 +172,17 @@ describe("createSessionMessagesPageLoader", () => {
   })
 })
 
-describe("message helpers", () => {
-  test("finds current and next session messages", async () => {
-    const snapshot: TreeSnapshot = {
-      version: 1,
-      treeId: "tree_01",
-      rootSessionId: "sess_root",
-      sessions: {
-        sess_root: {
-          sessionId: "sess_root",
-          parentSessionId: null,
-          anchorMessageId: null,
-          children: [],
-        },
-      },
-    }
-
-    const transcripts = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) => ({
-      sessionId,
+describe("createSessionTranscript", () => {
+  test("builds message lookup indexes from ordered messages", () => {
+    const transcript = createSessionTranscript({
+      sessionId: "sess_root",
       status: "available",
-      messages: [createMessageRecord("msg_01", sessionId, 1), createMessageRecord("msg_02", sessionId, 2)],
-    }))
+      messages: [createMessageRecord("msg_01", "sess_root", 1), createMessageRecord("msg_02", "sess_root", 2)],
+    })
 
-    expect(getSessionMessageRecord(transcripts, "sess_root", "msg_01")).toEqual(createMessageRecord("msg_01", "sess_root", 1))
-    expect(getNextSessionMessageRecord(transcripts, "sess_root", "msg_01")).toEqual(createMessageRecord("msg_02", "sess_root", 2))
-    expect(getNextSessionMessageRecord(transcripts, "sess_root", "msg_02")).toBeUndefined()
+    expect(transcript.messageById.get("msg_01")).toEqual(createMessageRecord("msg_01", "sess_root", 1))
+    expect(transcript.messageIndexById.get("msg_01")).toBe(0)
+    expect(transcript.messages[1]).toEqual(createMessageRecord("msg_02", "sess_root", 2))
   })
 
   test("extracts text-only prompt replay", () => {
@@ -244,23 +237,25 @@ describe("loadSnapshotSessionTranscripts", () => {
       },
     }
 
-    const loaded = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) => ({
-      sessionId,
-      status: "available",
-      messages: [createMessageRecord(`msg_${sessionId}`, sessionId, 1)],
-    }))
+    const loaded = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) =>
+      createSessionTranscript({
+        sessionId,
+        status: "available",
+        messages: [createMessageRecord(`msg_${sessionId}`, sessionId, 1)],
+      }),
+    )
 
     expect(loaded).toEqual({
-      sess_child: {
+      sess_child: createSessionTranscript({
         sessionId: "sess_child",
         status: "available",
         messages: [createMessageRecord("msg_sess_child", "sess_child", 1)],
-      },
-      sess_root: {
+      }),
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [createMessageRecord("msg_sess_root", "sess_root", 1)],
-      },
+      }),
     })
   })
 })

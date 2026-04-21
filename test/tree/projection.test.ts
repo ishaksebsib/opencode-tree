@@ -8,7 +8,7 @@ import type {
   ToolPart,
   UserMessage,
 } from "@opencode-ai/sdk/v2"
-import type { SessionTranscript, SessionTranscriptMap } from "../../src/lib/opencode/messages"
+import { createSessionTranscript, type SessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
 import type { TreeSnapshot } from "../../src/lib/storage"
 import { buildFlatRows } from "../../src/lib/tree/flatten"
 import { projectSessionTree } from "../../src/lib/tree/project"
@@ -134,14 +134,14 @@ function createTranscript(
   sessionId: string,
   messages: Array<{ id: string; created: number; text: string }>,
 ): SessionTranscript {
-  return {
+  return createSessionTranscript({
     sessionId,
     status: "available",
     messages: messages.map((message) => ({
       info: createUserMessage(message.id, sessionId, message.created),
       parts: [createTextPart(message.id, sessionId, message.text)],
     })),
-  }
+  })
 }
 
 describe("projectSessionTree", () => {
@@ -252,7 +252,7 @@ describe("projectSessionTree", () => {
     }
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -273,8 +273,8 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_after", "sess_root", "doing well")],
           },
         ],
-      },
-      sess_child: {
+      }),
+      sess_child: createSessionTranscript({
         sessionId: "sess_child",
         status: "available",
         messages: [
@@ -295,7 +295,7 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_branch_reply", "sess_child", "I'm doing well too")],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
@@ -334,7 +334,7 @@ describe("projectSessionTree", () => {
     }
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -351,8 +351,8 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_after_user", "sess_root", "follow up")],
           },
         ],
-      },
-      sess_child: {
+      }),
+      sess_child: createSessionTranscript({
         sessionId: "sess_child",
         status: "available",
         messages: [
@@ -369,7 +369,7 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_branch_user", "sess_child", "new path")],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
@@ -412,7 +412,7 @@ describe("projectSessionTree", () => {
     }
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -425,13 +425,13 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_after", "sess_root", "after")],
           },
         ],
-      },
-      sess_deleted: {
+      }),
+      sess_deleted: createSessionTranscript({
         sessionId: "sess_deleted",
         status: "deleted",
         messages: [],
-      },
-      sess_grandchild: {
+      }),
+      sess_grandchild: createSessionTranscript({
         sessionId: "sess_grandchild",
         status: "available",
         messages: [
@@ -440,7 +440,7 @@ describe("projectSessionTree", () => {
             parts: [createTextPart("msg_grandchild", "sess_grandchild", "grandchild")],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
@@ -477,7 +477,7 @@ describe("projectSessionTree", () => {
     }
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -493,7 +493,7 @@ describe("projectSessionTree", () => {
             ],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
@@ -521,7 +521,7 @@ describe("projectSessionTree", () => {
     }
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -534,7 +534,7 @@ describe("projectSessionTree", () => {
             ],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows

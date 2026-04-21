@@ -8,7 +8,7 @@ import type {
   ToolPart,
   UserMessage,
 } from "@opencode-ai/sdk/v2"
-import type { SessionTranscriptMap } from "../../src/lib/opencode/messages"
+import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
 import type { TreeSnapshot } from "../../src/lib/storage"
 import { buildFlatRows } from "../../src/lib/tree/flatten"
 import { projectSessionTree } from "../../src/lib/tree/project"
@@ -149,7 +149,7 @@ function createRootSnapshot(): TreeSnapshot {
 describe("buildFlatRows preview", () => {
   test("summarizes assistant tool input on one line", () => {
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -165,7 +165,7 @@ describe("buildFlatRows preview", () => {
             ],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
@@ -186,7 +186,7 @@ describe("buildFlatRows preview", () => {
 
   test("falls back to reasoning text when assistant has no text or tool", () => {
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -199,7 +199,7 @@ describe("buildFlatRows preview", () => {
             ],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
@@ -213,7 +213,7 @@ describe("buildFlatRows preview", () => {
 
   test("keeps user preview from visible text parts", () => {
     const transcripts: SessionTranscriptMap = {
-      sess_root: {
+      sess_root: createSessionTranscript({
         sessionId: "sess_root",
         status: "available",
         messages: [
@@ -222,7 +222,7 @@ describe("buildFlatRows preview", () => {
             parts: [createTextPart("msg_user", "sess_root", "hello from user prompt")],
           },
         ],
-      },
+      }),
     }
 
     const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows

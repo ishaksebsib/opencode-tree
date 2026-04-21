@@ -12,6 +12,8 @@ export type SessionTranscript = {
   readonly sessionId: string
   readonly status: SessionTranscriptStatus
   readonly messages: readonly SessionMessageRecord[]
+  readonly messageById: ReadonlyMap<string, SessionMessageRecord>
+  readonly messageIndexById: ReadonlyMap<string, number>
 }
 
 export type SessionTranscriptMap = Readonly<Record<string, SessionTranscript>>
@@ -59,6 +61,28 @@ function normalizePageItems(items: readonly SessionMessageRecord[]): readonly Se
 
 function sortTranscriptMessages(messages: Iterable<SessionMessageRecord>): readonly SessionMessageRecord[] {
   return [...messages].sort(compareMessageRecords)
+}
+
+export function createSessionTranscript(input: {
+  sessionId: string
+  status: SessionTranscriptStatus
+  messages: readonly SessionMessageRecord[]
+}): SessionTranscript {
+  const messageById = new Map<string, SessionMessageRecord>()
+  const messageIndexById = new Map<string, number>()
+
+  for (const [index, message] of input.messages.entries()) {
+    messageById.set(message.info.id, message)
+    messageIndexById.set(message.info.id, index)
+  }
+
+  return {
+    sessionId: input.sessionId,
+    status: input.status,
+    messages: input.messages,
+    messageById,
+    messageIndexById,
+  }
 }
 
 export function createSessionMessagesPageLoader(
@@ -113,11 +137,11 @@ export async function loadSessionTranscript(
     })
 
     if (page.status === "deleted") {
-      return {
+      return createSessionTranscript({
         sessionId,
         status: "deleted",
         messages: [],
-      }
+      })
     }
 
     for (const item of page.items) {
@@ -125,11 +149,11 @@ export async function loadSessionTranscript(
     }
 
     if (!page.nextCursor) {
-      return {
+      return createSessionTranscript({
         sessionId,
         status: "available",
         messages: sortTranscriptMessages(messagesById.values()),
-      }
+      })
     }
 
     if (seenCursors.has(page.nextCursor)) {
@@ -157,29 +181,6 @@ export function createSnapshotSessionTranscriptsLoader(
 ): LoadSnapshotSessionTranscripts {
   const loadPage = createSessionMessagesPageLoader(client, options)
   return (snapshot) => loadSnapshotSessionTranscripts(snapshot, (sessionId) => loadSessionTranscript(sessionId, loadPage, options.pageSize))
-}
-
-export function getSessionMessageRecord(
-  transcripts: SessionTranscriptMap,
-  sessionId: string,
-  messageId: string,
-): SessionMessageRecord | undefined {
-  const transcript = transcripts[sessionId]
-  if (!transcript) return undefined
-  return transcript.messages.find((message) => message.info.id === messageId)
-}
-
-export function getNextSessionMessageRecord(
-  transcripts: SessionTranscriptMap,
-  sessionId: string,
-  messageId: string,
-): SessionMessageRecord | undefined {
-  const transcript = transcripts[sessionId]
-  if (!transcript) return undefined
-
-  const index = transcript.messages.findIndex((message) => message.info.id === messageId)
-  if (index < 0) return undefined
-  return transcript.messages[index + 1]
 }
 
 export function getMessageTextReplay(parts: readonly Part[]): string | undefined {

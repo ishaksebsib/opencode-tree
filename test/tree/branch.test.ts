@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
-import type { SessionTranscriptMap } from "../../src/lib/opencode/messages"
+import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
 import { planTreeBranchAction } from "../../src/lib/tree/branch"
 import type { TreeFlatRow } from "../../src/lib/tree/flatten"
 
@@ -75,7 +75,7 @@ function createMessageRow(input: {
 }
 
 const transcripts: SessionTranscriptMap = {
-  sess_root: {
+  sess_root: createSessionTranscript({
     sessionId: "sess_root",
     status: "available",
     messages: [
@@ -92,8 +92,8 @@ const transcripts: SessionTranscriptMap = {
         parts: [createTextPart("msg_after", "sess_root", "after reply")],
       },
     ],
-  },
-  sess_leaf: {
+  }),
+  sess_leaf: createSessionTranscript({
     sessionId: "sess_leaf",
     status: "available",
     messages: [
@@ -106,7 +106,7 @@ const transcripts: SessionTranscriptMap = {
         parts: [createTextPart("msg_leaf_last", "sess_leaf", "leaf assistant")],
       },
     ],
-  },
+  }),
 }
 
 describe("planTreeBranchAction", () => {
