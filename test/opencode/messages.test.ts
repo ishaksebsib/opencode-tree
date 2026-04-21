@@ -170,6 +170,28 @@ describe("createSessionMessagesPageLoader", () => {
       "Failed to load messages for session sess_root (400): Bad cursor",
     )
   })
+
+  test("preserves API page order and leaves ordering to transcript load", async () => {
+    const loadPage = createSessionMessagesPageLoader(
+      createMessagesClient(
+        createMessagesResult({
+          status: 200,
+          data: [
+            { info: createUserMessage("msg_02", "sess_root", 20), parts: [] },
+            { info: createUserMessage("msg_01", "sess_root", 10), parts: [] },
+          ],
+        }),
+      ),
+    )
+
+    await expect(loadPage({ sessionId: "sess_root", limit: 100 })).resolves.toEqual({
+      status: "available",
+      items: [
+        createMessageRecord("msg_02", "sess_root", 20),
+        createMessageRecord("msg_01", "sess_root", 10),
+      ],
+    })
+  })
 })
 
 describe("createSessionTranscript", () => {

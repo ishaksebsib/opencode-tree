@@ -50,28 +50,9 @@ function projectSessionNode(
   }
 
   const hiddenPrefixCount = getHiddenPrefixCount(snapshot, transcripts, sessionId)
-  const childrenByAnchor = new Map<string, readonly string[]>()
-  for (const childSessionId of snapshotSession.children) {
-    const childSession = snapshot.sessions[childSessionId]
-    if (!childSession) {
-      throw new Error(`Missing snapshot child session ${childSessionId}`)
-    }
-
-    const anchorMessageId = childSession.anchorMessageId
-    if (!anchorMessageId) {
-      throw new Error(`Missing anchorMessageId for child session ${childSessionId}`)
-    }
-
-    const anchoredChildren = childrenByAnchor.get(anchorMessageId) ?? []
-    childrenByAnchor.set(anchorMessageId, [...anchoredChildren, childSessionId])
-  }
-
-  const seenAnchors = new Set<string>()
+  const childrenByAnchor = getChildrenByAnchor(snapshot, transcript, snapshotSession.children, sessionId)
   const messages = transcript.messages.slice(hiddenPrefixCount).map((record) => {
     const anchoredChildIds = childrenByAnchor.get(record.info.id) ?? []
-    if (anchoredChildIds.length > 0) {
-      seenAnchors.add(record.info.id)
-    }
 
     return {
       kind: "message",
@@ -81,13 +62,6 @@ function projectSessionNode(
       childSessions: anchoredChildIds.map((childSessionId) => projectSessionNode(snapshot, transcripts, childSessionId)),
     } satisfies ProjectedMessageNode
   })
-
-  for (const [anchorMessageId, childSessionIds] of childrenByAnchor.entries()) {
-    if (seenAnchors.has(anchorMessageId)) continue
-    throw new Error(
-      `Anchor message ${anchorMessageId} for child sessions ${childSessionIds.join(", ")} not found in session ${sessionId}`,
-    )
-  }
 
   return {
     kind: "session",
@@ -125,8 +99,8 @@ function getHiddenPrefixCount(
 }
 
 function getInheritedPrefixCount(parentTranscript: SessionTranscript, anchorMessageId: string): number {
-  const anchorIndex = parentTranscript.messages.findIndex((message) => message.info.id === anchorMessageId)
-  if (anchorIndex < 0) {
+  const anchorIndex = parentTranscript.messageIndexById.get(anchorMessageId)
+  if (anchorIndex === undefined) {
     throw new Error(`Anchor message ${anchorMessageId} not found in parent session ${parentTranscript.sessionId}`)
   }
 
@@ -136,4 +110,39 @@ function getInheritedPrefixCount(parentTranscript: SessionTranscript, anchorMess
   }
 
   return anchorRecord.info.role === "assistant" ? anchorIndex + 1 : anchorIndex
+}
+
+function getChildrenByAnchor(
+  snapshot: TreeSnapshot,
+  transcript: SessionTranscript,
+  childSessionIds: readonly string[],
+  sessionId: string,
+): ReadonlyMap<string, readonly string[]> {
+  const childrenByAnchor = new Map<string, string[]>()
+
+  for (const childSessionId of childSessionIds) {
+    const childSession = snapshot.sessions[childSessionId]
+    if (!childSession) {
+      throw new Error(`Missing snapshot child session ${childSessionId}`)
+    }
+
+    const anchorMessageId = childSession.anchorMessageId
+    if (!anchorMessageId) {
+      throw new Error(`Missing anchorMessageId for child session ${childSessionId}`)
+    }
+
+    if (!transcript.messageById.has(anchorMessageId)) {
+      throw new Error(`Anchor message ${anchorMessageId} for child session ${childSessionId} not found in session ${sessionId}`)
+    }
+
+    const anchoredChildren = childrenByAnchor.get(anchorMessageId)
+    if (anchoredChildren) {
+      anchoredChildren.push(childSessionId)
+      continue
+    }
+
+    childrenByAnchor.set(anchorMessageId, [childSessionId])
+  }
+
+  return childrenByAnchor
 }

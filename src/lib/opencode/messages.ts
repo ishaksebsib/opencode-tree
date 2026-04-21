@@ -55,10 +55,6 @@ function compareMessageRecords(left: SessionMessageRecord, right: SessionMessage
   return left.info.id.localeCompare(right.info.id)
 }
 
-function normalizePageItems(items: readonly SessionMessageRecord[]): readonly SessionMessageRecord[] {
-  return [...items].sort(compareMessageRecords)
-}
-
 function sortTranscriptMessages(messages: Iterable<SessionMessageRecord>): readonly SessionMessageRecord[] {
   return [...messages].sort(compareMessageRecords)
 }
@@ -113,7 +109,7 @@ export function createSessionMessagesPageLoader(
 
     return {
       status: "available",
-      items: normalizePageItems((result.data ?? []).map((item) => ({ info: item.info, parts: item.parts }))),
+      items: (result.data ?? []).map((item) => ({ info: item.info, parts: item.parts })),
       nextCursor: result.response?.headers.get("x-next-cursor") ?? undefined,
     }
   }
