@@ -12,11 +12,13 @@ import { createTreeId, type TreeIdGenerator } from "./tree-id"
 export type MissingSessionContextBootstrapResult = {
   readonly kind: "missing-session-context"
   readonly projectRoot: string
+  readonly storageRoot: string
 }
 
 export type FoundTreeBootstrapResult = {
   readonly kind: "found-tree"
   readonly projectRoot: string
+  readonly storageRoot: string
   readonly treeId: string
   readonly currentSessionId: string
   readonly snapshot: TreeSnapshot
@@ -25,6 +27,7 @@ export type FoundTreeBootstrapResult = {
 export type CreatedTreeBootstrapResult = {
   readonly kind: "created-tree"
   readonly projectRoot: string
+  readonly storageRoot: string
   readonly treeId: string
   readonly currentSessionId: string
   readonly snapshot: TreeSnapshot
@@ -37,14 +40,15 @@ export type TreeBootstrapResult =
 
 export type TreeBootstrapInput = {
   readonly projectRoot: string
+  readonly storageRoot: string
   readonly sessionID?: string
 }
 
 export type TreeBootstrapStorage = {
-  readRegistry(projectRoot: string): Promise<TreeRegistry>
-  writeRegistry(projectRoot: string, registry: TreeRegistry): Promise<TreeRegistry>
-  readSnapshot(projectRoot: string, treeId: string): Promise<TreeSnapshot>
-  writeSnapshot(projectRoot: string, snapshot: TreeSnapshot): Promise<TreeSnapshot>
+  readRegistry(storageRoot: string): Promise<TreeRegistry>
+  writeRegistry(storageRoot: string, registry: TreeRegistry): Promise<TreeRegistry>
+  readSnapshot(storageRoot: string, treeId: string): Promise<TreeSnapshot>
+  writeSnapshot(storageRoot: string, snapshot: TreeSnapshot): Promise<TreeSnapshot>
 }
 
 export type TreeBootstrapDependencies = {
@@ -86,17 +90,19 @@ export async function bootstrapTree(
     return {
       kind: "missing-session-context",
       projectRoot: input.projectRoot,
+      storageRoot: input.storageRoot,
     }
   }
 
-  const registry = await dependencies.storage.readRegistry(input.projectRoot)
+  const registry = await dependencies.storage.readRegistry(input.storageRoot)
   const existingTreeId = registry.sessions[input.sessionID]
 
   if (existingTreeId) {
-    const snapshot = await dependencies.storage.readSnapshot(input.projectRoot, existingTreeId)
+    const snapshot = await dependencies.storage.readSnapshot(input.storageRoot, existingTreeId)
     return {
       kind: "found-tree",
       projectRoot: input.projectRoot,
+      storageRoot: input.storageRoot,
       treeId: existingTreeId,
       currentSessionId: input.sessionID,
       snapshot,
@@ -114,12 +120,13 @@ export async function bootstrapTree(
     },
   }
 
-  await dependencies.storage.writeSnapshot(input.projectRoot, snapshot)
-  await dependencies.storage.writeRegistry(input.projectRoot, nextRegistry)
+  await dependencies.storage.writeSnapshot(input.storageRoot, snapshot)
+  await dependencies.storage.writeRegistry(input.storageRoot, nextRegistry)
 
   return {
     kind: "created-tree",
     projectRoot: input.projectRoot,
+    storageRoot: input.storageRoot,
     treeId,
     currentSessionId: input.sessionID,
     snapshot,

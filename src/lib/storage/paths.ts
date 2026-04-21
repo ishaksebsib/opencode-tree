@@ -1,21 +1,17 @@
 import { join } from "node:path"
 
-export function getStorageRootPath(projectRoot: string): string {
-  return join(projectRoot, ".opencode", "opencode-tree")
+export function getTreesRootPath(storageRoot: string): string {
+  return join(storageRoot, "trees")
 }
 
-export function getTreesRootPath(projectRoot: string): string {
-  return join(getStorageRootPath(projectRoot), "trees")
+export function getRegistryFilePath(storageRoot: string): string {
+  return join(storageRoot, "registry.json")
 }
 
-export function getRegistryFilePath(projectRoot: string): string {
-  return join(getStorageRootPath(projectRoot), "registry.json")
+export function getTreeDirectoryPath(storageRoot: string, treeId: string): string {
+  return join(getTreesRootPath(storageRoot), treeId)
 }
 
-export function getTreeDirectoryPath(projectRoot: string, treeId: string): string {
-  return join(getTreesRootPath(projectRoot), treeId)
-}
-
-export function getSnapshotFilePath(projectRoot: string, treeId: string): string {
-  return join(getTreeDirectoryPath(projectRoot, treeId), "snapshot.json")
+export function getSnapshotFilePath(storageRoot: string, treeId: string): string {
+  return join(getTreeDirectoryPath(storageRoot, treeId), "snapshot.json")
 }

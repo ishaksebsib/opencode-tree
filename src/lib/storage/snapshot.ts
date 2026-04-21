@@ -2,15 +2,15 @@ import { readJsonFile, writeJsonFile } from "./file"
 import { getSnapshotFilePath } from "./paths"
 import { snapshotSchema, type TreeSnapshot } from "./schema"
 
-export async function readSnapshot(projectRoot: string, treeId: string): Promise<TreeSnapshot> {
-  return readJsonFile(getSnapshotFilePath(projectRoot, treeId), snapshotSchema)
+export async function readSnapshot(storageRoot: string, treeId: string): Promise<TreeSnapshot> {
+  return readJsonFile(getSnapshotFilePath(storageRoot, treeId), snapshotSchema)
 }
 
 export async function writeSnapshot(
-  projectRoot: string,
+  storageRoot: string,
   snapshot: TreeSnapshot,
 ): Promise<TreeSnapshot> {
-  return writeJsonFile(getSnapshotFilePath(projectRoot, snapshot.treeId), snapshotSchema, snapshot)
+  return writeJsonFile(getSnapshotFilePath(storageRoot, snapshot.treeId), snapshotSchema, snapshot)
 }
 
 export function appendChildSession(

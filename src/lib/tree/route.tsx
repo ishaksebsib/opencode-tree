@@ -19,6 +19,7 @@ import { TreeView } from "./view"
 export type TreeRouteProps = {
   readonly client: OpencodeClient
   readonly projectRoot?: string
+  readonly storageRoot?: string
   readonly sessionID?: string
   readonly theme: () => TuiThemeCurrent
   readonly loadSessionTranscripts: LoadSnapshotSessionTranscripts
@@ -36,9 +37,10 @@ export function TreeRoute(props: TreeRouteProps) {
   const palette = createMemo(() => mapTreeTheme(theme()))
 
   const bootstrapInput = createMemo(() => {
-    if (!props.projectRoot) return undefined
+    if (!props.projectRoot || !props.storageRoot) return undefined
     return {
       projectRoot: props.projectRoot,
+      storageRoot: props.storageRoot,
       sessionID: props.sessionID,
     }
   })
@@ -145,12 +147,13 @@ export function TreeRoute(props: TreeRouteProps) {
       })
 
       setBranching(true)
-      void executeTreeBranchAction(
-        {
-          action,
-          projectRoot: bootstrapResult.projectRoot,
-          snapshot: bootstrapResult.snapshot,
-        },
+        void executeTreeBranchAction(
+          {
+            action,
+            projectRoot: bootstrapResult.projectRoot,
+            storageRoot: bootstrapResult.storageRoot,
+            snapshot: bootstrapResult.snapshot,
+          },
         {
           client: props.client,
           navigateToSession: props.navigateToSession,

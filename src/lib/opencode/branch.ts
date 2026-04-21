@@ -11,14 +11,15 @@ import {
 import type { TreeBranchAction } from "../tree/branch"
 
 export type TreeBranchStorage = {
-  readRegistry(projectRoot: string): Promise<TreeRegistry>
-  writeRegistry(projectRoot: string, registry: TreeRegistry): Promise<TreeRegistry>
-  writeSnapshot(projectRoot: string, snapshot: TreeSnapshot): Promise<TreeSnapshot>
+  readRegistry(storageRoot: string): Promise<TreeRegistry>
+  writeRegistry(storageRoot: string, registry: TreeRegistry): Promise<TreeRegistry>
+  writeSnapshot(storageRoot: string, snapshot: TreeSnapshot): Promise<TreeSnapshot>
 }
 
 export type ExecuteTreeBranchActionInput = {
   readonly action: TreeBranchAction
   readonly projectRoot: string
+  readonly storageRoot: string
   readonly snapshot: TreeSnapshot
 }
 
@@ -74,11 +75,11 @@ export async function executeTreeBranchAction(
     parentSessionId: input.action.sessionId,
     anchorMessageId: input.action.anchorMessageId,
   })
-  const registry = await storage.readRegistry(input.projectRoot)
+  const registry = await storage.readRegistry(input.storageRoot)
   const nextRegistry = registerSessionTree(registry, forkedSessionId, input.snapshot.treeId)
 
-  await storage.writeSnapshot(input.projectRoot, nextSnapshot)
-  await storage.writeRegistry(input.projectRoot, nextRegistry)
+  await storage.writeSnapshot(input.storageRoot, nextSnapshot)
+  await storage.writeRegistry(input.storageRoot, nextRegistry)
   await dependencies.navigateToSession(forkedSessionId)
 
   if (!input.action.appendPromptText) return
