@@ -30,9 +30,10 @@ export function appendChildSession(
   if (existingSession) {
     const sameParent = existingSession.parentSessionId === input.parentSessionId
     const sameAnchor = existingSession.anchorMessageId === input.anchorMessageId
-    const listedByParent = parent.children.includes(input.sessionId)
 
-    if (sameParent && sameAnchor && listedByParent) {
+    // Loaded snapshots are schema-validated, so an existing attachment implies the
+    // parent already lists the child when parent/anchor match.
+    if (sameParent && sameAnchor) {
       return snapshot
     }
 

@@ -31,6 +31,22 @@ export const snapshotSchema = z
   })
   .strict()
   .superRefine((snapshot, ctx) => {
+    const sessionEntries = Object.entries(snapshot.sessions)
+    const childIdSetBySessionId = new Map<string, ReadonlySet<string>>()
+
+    for (const [sessionKey, node] of sessionEntries) {
+      const childIdSet = new Set(node.children)
+      childIdSetBySessionId.set(sessionKey, childIdSet)
+
+      if (childIdSet.size !== node.children.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "children must not contain duplicates",
+          path: ["sessions", sessionKey, "children"],
+        })
+      }
+    }
+
     const rootNode = snapshot.sessions[snapshot.rootSessionId]
 
     if (!rootNode) {
@@ -58,7 +74,7 @@ export const snapshotSchema = z
       })
     }
 
-    for (const [sessionKey, node] of Object.entries(snapshot.sessions)) {
+    for (const [sessionKey, node] of sessionEntries) {
       if (node.sessionId !== sessionKey) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -72,15 +88,6 @@ export const snapshotSchema = z
           code: z.ZodIssueCode.custom,
           message: "session cannot be its own parent",
           path: ["sessions", sessionKey, "parentSessionId"],
-        })
-      }
-
-      const uniqueChildren = new Set(node.children)
-      if (uniqueChildren.size !== node.children.length) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "children must not contain duplicates",
-          path: ["sessions", sessionKey, "children"],
         })
       }
 
@@ -102,6 +109,7 @@ export const snapshotSchema = z
 
       if (node.parentSessionId !== null) {
         const parentNode = snapshot.sessions[node.parentSessionId]
+        const parentChildIdSet = childIdSetBySessionId.get(node.parentSessionId)
 
         if (!parentNode) {
           ctx.addIssue({
@@ -109,7 +117,7 @@ export const snapshotSchema = z
             message: `parent session ${node.parentSessionId} is missing`,
             path: ["sessions", sessionKey, "parentSessionId"],
           })
-        } else if (!parentNode.children.includes(node.sessionId)) {
+        } else if (!parentChildIdSet?.has(node.sessionId)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: `parent session ${node.parentSessionId} must list ${node.sessionId} in children`,
