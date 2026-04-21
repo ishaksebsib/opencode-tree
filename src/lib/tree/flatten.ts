@@ -101,48 +101,68 @@ function pushRow(
 }
 
 function getMessagePreview(message: ProjectedMessageNode): string {
-  if (message.record.info.role === "user") {
-    return getUserMessagePreview(message.record.parts)
+  const previewParts = collectPreviewParts(message.record.parts)
+
+  if (previewParts.textPart) {
+    return normalizePreviewText(previewParts.textPart.text)
   }
 
-  return getAssistantMessagePreview(message.record.parts)
-}
+  if (message.record.info.role === "assistant") {
+    if (previewParts.toolPart) {
+      return normalizePreviewText(formatToolPreview(previewParts.toolPart))
+    }
 
-function getUserMessagePreview(parts: readonly Part[]): string {
-  const textPart = parts.find(isVisibleTextPart)
-  if (textPart) {
-    return normalizePreviewText(textPart.text)
+    if (previewParts.reasoningPart) {
+      return normalizePreviewText(`reasoning: ${previewParts.reasoningPart.text}`)
+    }
   }
 
-  return getFallbackPreview(parts)
-}
-
-function getAssistantMessagePreview(parts: readonly Part[]): string {
-  const textPart = parts.find(isVisibleTextPart)
-  if (textPart) {
-    return normalizePreviewText(textPart.text)
-  }
-
-  const toolPart = parts.find(isToolPart)
-  if (toolPart) {
-    return normalizePreviewText(formatToolPreview(toolPart))
-  }
-
-  const reasoningPart = parts.find(hasReasoningText)
-  if (reasoningPart) {
-    return normalizePreviewText(`reasoning: ${reasoningPart.text}`)
-  }
-
-  return getFallbackPreview(parts)
-}
-
-function getFallbackPreview(parts: readonly Part[]): string {
-  const partTypes = [...new Set(parts.filter((part) => !isStepMarkerPart(part)).map((part) => part.type))]
-  if (partTypes.length > 0) {
-    return `[${partTypes.join(", ")}]`
+  if (previewParts.fallbackPartTypes.length > 0) {
+    return `[${previewParts.fallbackPartTypes.join(", ")}]`
   }
 
   return "(no content)"
+}
+
+function collectPreviewParts(parts: readonly Part[]): {
+  textPart?: TextPart
+  toolPart?: ToolPart
+  reasoningPart?: ReasoningPart
+  fallbackPartTypes: readonly string[]
+} {
+  const fallbackPartTypes: string[] = []
+  const seenFallbackPartTypes = new Set<string>()
+  let textPart: TextPart | undefined
+  let toolPart: ToolPart | undefined
+  let reasoningPart: ReasoningPart | undefined
+
+  for (const part of parts) {
+    if (part.type === "text" && !part.synthetic && !part.ignored) {
+      textPart ??= part
+    } else if (part.type === "tool") {
+      toolPart ??= part
+    } else if (part.type === "reasoning" && part.text.trim().length > 0) {
+      reasoningPart ??= part
+    }
+
+    if (part.type === "step-start" || part.type === "step-finish") {
+      continue
+    }
+
+    if (seenFallbackPartTypes.has(part.type)) {
+      continue
+    }
+
+    seenFallbackPartTypes.add(part.type)
+    fallbackPartTypes.push(part.type)
+  }
+
+  return {
+    textPart,
+    toolPart,
+    reasoningPart,
+    fallbackPartTypes,
+  }
 }
 
 function formatToolPreview(part: ToolPart): string {
@@ -179,22 +199,6 @@ function formatToolInputValue(value: unknown): string | undefined {
   }
 
   return undefined
-}
-
-function isVisibleTextPart(part: Part): part is TextPart {
-  return part.type === "text" && !part.synthetic && !part.ignored
-}
-
-function isToolPart(part: Part): part is ToolPart {
-  return part.type === "tool"
-}
-
-function hasReasoningText(part: Part): part is ReasoningPart {
-  return part.type === "reasoning" && part.text.trim().length > 0
-}
-
-function isStepMarkerPart(part: Part): boolean {
-  return part.type === "step-start" || part.type === "step-finish"
 }
 
 function normalizePreviewText(text: string): string {
