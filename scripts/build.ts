@@ -10,7 +10,6 @@ const build = await Bun.build({
   outdir: "./dist",
   target: "bun",
   format: "esm",
-  bundle: true,
   splitting: false,
   external: [
     "@opencode-ai/plugin",
