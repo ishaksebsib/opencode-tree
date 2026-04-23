@@ -4,7 +4,7 @@ import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { createComponent, createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
-import { executeTreeBranchAction } from "../opencode/branch"
+import { executeTreeBranchAction, executeTreeSummaryFork } from "../opencode/branch"
 import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
 import { bootstrapTree } from "./bootstrap"
 import {
@@ -22,7 +22,11 @@ import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
-import type { TreeBranchSummaryRequest } from "./summary-option"
+import {
+  getTreeBranchSummaryCustomInstructions,
+  type TreeBranchSummaryRequest,
+} from "./summary-option"
+import { collectTreeBranchSummarySlice, serializeTreeBranchSummarySlice } from "./summary"
 import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
 
@@ -41,6 +45,7 @@ export function TreeRoute(props: TreeRouteProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | undefined>()
   const [branching, setBranching] = createSignal(false)
   const [actionErrorMessage, setActionErrorMessage] = createSignal<string | undefined>()
+  const [summaryAbortController, setSummaryAbortController] = createSignal<AbortController | undefined>()
   const [treeFocused, setTreeFocused] = createSignal(false)
   const dimensions = useTerminalDimensions()
 
@@ -125,19 +130,52 @@ export function TreeRoute(props: TreeRouteProps) {
       })
   }
 
-  const showSummaryPendingNotice = (request: TreeBranchSummaryRequest) => {
-    if (!props.projectRoot) return
+  const runTreeSummaryBranchAction = (
+    action: Extract<TreeBranchAction, { kind: "fork" }>,
+    request: Exclude<TreeBranchSummaryRequest, { kind: "no-summary" }>,
+  ) => {
+    const bootstrapResult = bootstrap()
+    const treeData = projectedTreeData()
+    const row = selectedRow()
+    if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
 
-    const message =
-      request.kind === "summarize-with-custom-prompt"
-        ? "Summary generation is not implemented yet. Custom instructions were captured for the next step."
-        : "Summary generation is not implemented yet."
-
-    void props.client.tui.showToast({
-      directory: props.projectRoot,
-      message,
-      variant: "warning",
+    const summarySlice = collectTreeBranchSummarySlice({
+      row,
+      transcripts: treeData.transcripts,
     })
+    const controller = new AbortController()
+
+    setActionErrorMessage(undefined)
+    setSummaryAbortController(controller)
+    setBranching(true)
+
+    void executeTreeSummaryFork(
+      {
+        plan: action.plan,
+        projectRoot: bootstrapResult.projectRoot,
+        storageRoot: bootstrapResult.storageRoot,
+        snapshot: bootstrapResult.snapshot,
+        conversation: serializeTreeBranchSummarySlice(summarySlice),
+        customInstructions: getTreeBranchSummaryCustomInstructions(request),
+        signal: controller.signal,
+      },
+      {
+        client: props.client,
+        navigateToSession: props.navigateToSession,
+      },
+    )
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message === "Summary generation cancelled.") {
+          return
+        }
+
+        setActionErrorMessage(message)
+      })
+      .finally(() => {
+        setSummaryAbortController(undefined)
+        setBranching(false)
+      })
   }
 
   const handleBranchSummaryRequest = (
@@ -151,7 +189,7 @@ export function TreeRoute(props: TreeRouteProps) {
       return
     }
 
-    showSummaryPendingNotice(request)
+    runTreeSummaryBranchAction(action, request)
   }
 
   const openBranchSummaryDialog = (action: Extract<TreeBranchAction, { kind: "fork" }>) => {
@@ -202,7 +240,17 @@ export function TreeRoute(props: TreeRouteProps) {
 
     if (!treeFocused()) return
 
+    const controller = summaryAbortController()
+    if (controller && (evt.name === "escape" || (evt.ctrl && evt.name === "c"))) {
+      evt.preventDefault()
+      evt.stopPropagation()
+      controller.abort()
+      return
+    }
+
     if (props.ui.dialog.open) return
+
+    if (branching()) return
 
     if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
       if (!props.sessionID) return
@@ -212,7 +260,7 @@ export function TreeRoute(props: TreeRouteProps) {
       return
     }
 
-    if (branching() || rows().length === 0) return
+    if (rows().length === 0) return
 
     if (evt.name === "up" || evt.name === "k") {
       evt.preventDefault()

@@ -33,3 +33,14 @@ export function createTreeBranchSummaryRequest(
     customPrompt,
   }
 }
+
+export function getTreeBranchSummaryCustomInstructions(
+  request: TreeBranchSummaryRequest,
+): string | undefined {
+  if (request.kind !== "summarize-with-custom-prompt") {
+    return undefined
+  }
+
+  const normalized = request.customPrompt.trim()
+  return normalized.length > 0 ? normalized : undefined
+}

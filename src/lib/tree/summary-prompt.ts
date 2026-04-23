@@ -31,6 +31,11 @@ Use this EXACT format:
 
 Keep each section concise. Preserve exact file paths, function names, and error messages.`
 
+export const TREE_BRANCH_SUMMARY_PREAMBLE = `The user explored a different conversation branch before returning here.
+Summary of that exploration:
+
+`
+
 export type BuildTreeBranchSummaryPromptInput = {
   readonly conversation: string
   readonly customInstructions?: string
@@ -47,4 +52,9 @@ export function buildTreeBranchSummaryInstructions(customInstructions?: string):
 
 export function buildTreeBranchSummaryPrompt(input: BuildTreeBranchSummaryPromptInput): string {
   return `<conversation>\n${input.conversation}\n</conversation>\n\n${buildTreeBranchSummaryInstructions(input.customInstructions)}`
+}
+
+export function buildTreeBranchSummaryMessage(summary: string): string {
+  const normalizedSummary = summary.trim()
+  return `${TREE_BRANCH_SUMMARY_PREAMBLE}${normalizedSummary}`
 }

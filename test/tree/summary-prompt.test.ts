@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import {
+  TREE_BRANCH_SUMMARY_PREAMBLE,
   TREE_BRANCH_SUMMARY_INSTRUCTIONS,
   TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT,
+  buildTreeBranchSummaryMessage,
   buildTreeBranchSummaryInstructions,
   buildTreeBranchSummaryPrompt,
 } from "../../src/lib/tree/summary-prompt"
@@ -47,5 +49,13 @@ describe("TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT", () => {
   test("states the model must summarize instead of continue the conversation", () => {
     expect(TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT).toContain("Do NOT continue the conversation.")
     expect(TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT).toContain("ONLY output the structured summary.")
+  })
+})
+
+describe("buildTreeBranchSummaryMessage", () => {
+  test("prefixes the generated summary with the Pi-style branch preamble", () => {
+    expect(buildTreeBranchSummaryMessage("  ## Goal\nShip it  ")).toBe(
+      `${TREE_BRANCH_SUMMARY_PREAMBLE}## Goal\nShip it`,
+    )
   })
 })
