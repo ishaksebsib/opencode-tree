@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.4.3",
+    "opentui-spinner": "0.0.6",
     "solid-js": "^1.9.9",
     "zod": "^3.25.76"
   },

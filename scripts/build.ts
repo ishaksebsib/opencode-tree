@@ -18,6 +18,8 @@ const build = await Bun.build({
     "@opentui/core/*",
     "@opentui/solid",
     "@opentui/solid/*",
+    "opentui-spinner",
+    "opentui-spinner/*",
     "solid-js",
     "solid-js/*",
   ],
