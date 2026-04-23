@@ -27,6 +27,8 @@ export async function generateTreeBranchSummary(
   let helperSessionId: string | undefined
   let summary: string | undefined
   let generationError: Error | undefined
+  let getAbortPromise = () => undefined as Promise<void> | undefined
+  let detachAbortListener = () => {}
 
   try {
     const helperSession = input.signal
@@ -51,6 +53,13 @@ export async function generateTreeBranchSummary(
       throw new Error("Summary helper session creation did not return a session ID")
     }
 
+    ;({ getAbortPromise, detachAbortListener } = trackSummaryAbort({
+      signal: input.signal,
+      sessionId: helperSessionId,
+      projectRoot: input.projectRoot,
+      client: dependencies.client,
+    }))
+
     const promptParameters = {
       sessionID: helperSessionId,
       directory: input.projectRoot,
@@ -68,9 +77,14 @@ export async function generateTreeBranchSummary(
       ],
     }
 
-    const promptResult = input.signal
-      ? await dependencies.client.session.prompt(promptParameters, { signal: input.signal })
-      : await dependencies.client.session.prompt(promptParameters)
+    const promptResult = await promptSummaryWithCancellation({
+      signal: input.signal,
+      getAbortPromise,
+      prompt: () =>
+        input.signal
+          ? dependencies.client.session.prompt(promptParameters, { signal: input.signal })
+          : dependencies.client.session.prompt(promptParameters),
+    })
 
     if (promptResult.error) {
       throw createSessionSummaryError("generate branch summary", promptResult.error, promptResult.response?.status)
@@ -82,12 +96,19 @@ export async function generateTreeBranchSummary(
     }
   } catch (error) {
     generationError = toSummaryGenerationError(error)
+  } finally {
+    detachAbortListener()
   }
 
   let cleanupError: Error | undefined
 
   if (helperSessionId) {
     try {
+      const abortPromise = getAbortPromise()
+      if (abortPromise) {
+        await abortPromise
+      }
+
       await deleteSummaryHelperSession(helperSessionId, input.projectRoot, dependencies.client)
     } catch (error) {
       cleanupError = toError(error)
@@ -157,6 +178,122 @@ async function deleteSummaryHelperSession(sessionId: string, projectRoot: string
   }
 }
 
+function trackSummaryAbort(input: {
+  readonly signal?: AbortSignal
+  readonly sessionId: string
+  readonly projectRoot: string
+  readonly client: OpencodeClient
+}): {
+  readonly getAbortPromise: () => Promise<void> | undefined
+  readonly detachAbortListener: () => void
+} {
+  if (!input.signal) {
+    return {
+      getAbortPromise: () => undefined,
+      detachAbortListener: () => {},
+    }
+  }
+
+  let abortPromise: Promise<void> | undefined
+  const abort = () => {
+    abortPromise ??= abortSummaryHelperSession(input.sessionId, input.projectRoot, input.client)
+    return abortPromise
+  }
+
+  if (input.signal.aborted) {
+    abort()
+    return {
+      getAbortPromise: () => abortPromise,
+      detachAbortListener: () => {},
+    }
+  }
+
+  const onAbort = () => {
+    abort()
+  }
+
+  input.signal.addEventListener("abort", onAbort, { once: true })
+
+  return {
+    getAbortPromise: () => {
+      return abortPromise
+    },
+    detachAbortListener: () => {
+      input.signal?.removeEventListener("abort", onAbort)
+    },
+  }
+}
+
+async function promptSummaryWithCancellation<T>(input: {
+  readonly signal?: AbortSignal
+  readonly getAbortPromise: () => Promise<void> | undefined
+  readonly prompt: () => Promise<T>
+}): Promise<T> {
+  const promptPromise = input.prompt()
+
+  if (!input.signal) {
+    return promptPromise
+  }
+
+  void promptPromise.catch(() => undefined)
+
+  const result = await Promise.race([
+    promptPromise,
+    waitForSummaryAbort(input.signal, input.getAbortPromise),
+  ])
+
+  if (input.signal.aborted) {
+    const abortPromise = input.getAbortPromise()
+    if (abortPromise) {
+      await abortPromise
+    }
+
+    throw createAbortError()
+  }
+
+  return result
+}
+
+async function waitForSummaryAbort(
+  signal: AbortSignal,
+  getAbortPromise: () => Promise<void> | undefined,
+): Promise<never> {
+  if (signal.aborted) {
+    const abortPromise = getAbortPromise()
+    if (abortPromise) {
+      await abortPromise
+    }
+
+    throw createAbortError()
+  }
+
+  await new Promise<void>((resolve) => {
+    signal.addEventListener("abort", () => resolve(), { once: true })
+  })
+
+  const abortPromise = getAbortPromise()
+  if (abortPromise) {
+    await abortPromise
+  }
+
+  throw createAbortError()
+}
+
+async function abortSummaryHelperSession(sessionId: string, projectRoot: string, client: OpencodeClient): Promise<void> {
+  const abortResult = await client.session.abort({
+    sessionID: sessionId,
+    directory: projectRoot,
+  })
+
+  if (abortResult.error) {
+    throw createSessionSummaryError("abort summary helper session", abortResult.error, abortResult.response?.status)
+  }
+
+  if (abortResult.data !== true) {
+    throw new Error("Summary helper session abort did not succeed")
+  }
+}
+
 function getApiErrorMessage(error: unknown): string | undefined {
   if (error instanceof Error) {
     return error.message
@@ -196,4 +333,10 @@ function toSummaryGenerationError(error: unknown): Error {
 
 function isAbortError(error: unknown): error is Error {
   return error instanceof Error && error.name === "AbortError"
+}
+
+function createAbortError(): Error {
+  const error = new Error("The operation was aborted")
+  error.name = "AbortError"
+  return error
 }

@@ -19,6 +19,7 @@ type SummaryTestClient = {
   readonly client: OpencodeClient
   readonly createSession: ReturnType<typeof mock>
   readonly promptSession: ReturnType<typeof mock>
+  readonly abortSession: ReturnType<typeof mock>
   readonly deleteSession: ReturnType<typeof mock>
 }
 
@@ -40,8 +41,9 @@ function createClient() {
           } satisfies Extract<Part, { type: "text" }>,
         ],
       },
-    }),
-  )
+      }),
+    )
+  const abortSession = mock(async () => createResult({ data: true }))
   const deleteSession = mock(async () => createResult({ data: true }))
 
   return {
@@ -49,11 +51,13 @@ function createClient() {
       session: {
         create: createSession,
         prompt: promptSession,
+        abort: abortSession,
         delete: deleteSession,
       },
     } as unknown as OpencodeClient,
     createSession,
     promptSession,
+    abortSession,
     deleteSession,
   } satisfies SummaryTestClient
 }
@@ -99,14 +103,27 @@ describe("generateTreeBranchSummary", () => {
     })
   })
 
-  test("passes abort signal to helper-session requests and still deletes on cancellation", async () => {
+  test("aborts and deletes helper session on cancellation", async () => {
     const client = createClient()
     const controller = new AbortController()
-    const abortError = new Error("The operation was aborted")
-    abortError.name = "AbortError"
 
-    client.promptSession.mockImplementation(async () => {
-      throw abortError
+    client.promptSession.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          controller.signal.addEventListener(
+            "abort",
+            () => {
+              const abortError = new Error("The operation was aborted")
+              abortError.name = "AbortError"
+              reject(abortError)
+            },
+            { once: true },
+          )
+        }),
+    )
+
+    setTimeout(() => {
+      controller.abort()
     })
 
     await expect(
@@ -128,10 +145,59 @@ describe("generateTreeBranchSummary", () => {
       { signal: controller.signal },
     )
     expect((client.promptSession as any).mock.calls[0]?.[1]).toEqual({ signal: controller.signal })
+    expect(client.abortSession).toHaveBeenCalledWith({
+      sessionID: "sess_summary",
+      directory: "/repo",
+    })
     expect(client.deleteSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
     })
+  })
+
+  test("treats helper session abort failure as a generation failure", async () => {
+    const client = createClient()
+    const controller = new AbortController()
+
+    client.promptSession.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          controller.signal.addEventListener(
+            "abort",
+            () => {
+              const abortError = new Error("The operation was aborted")
+              abortError.name = "AbortError"
+              reject(abortError)
+            },
+            { once: true },
+          )
+        }),
+    )
+    client.abortSession.mockImplementation(async () =>
+      createResult({
+        error: {
+          data: {
+            message: "Session busy",
+          },
+        },
+        status: 400,
+      }),
+    )
+
+    setTimeout(() => {
+      controller.abort()
+    })
+
+    await expect(
+      generateTreeBranchSummary(
+        {
+          projectRoot: "/repo",
+          conversation: "[User]: fix this",
+          signal: controller.signal,
+        },
+        { client: client.client },
+      ),
+    ).rejects.toThrow("Failed to abort summary helper session (400): Session busy")
   })
 
   test("deletes helper session even when prompt generation fails", async () => {
