@@ -53,6 +53,11 @@ const tui: TuiPlugin = async (api, options) => {
 
         return createComponent(TreeRoute, {
           client: api.client,
+          ui: {
+            dialog: api.ui.dialog,
+            DialogPrompt: api.ui.DialogPrompt,
+            DialogSelect: api.ui.DialogSelect,
+          },
           projectRoot,
           storageRoot,
           theme: () => api.theme.current,

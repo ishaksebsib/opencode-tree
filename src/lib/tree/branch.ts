@@ -26,6 +26,12 @@ export type TreeBranchAction =
       readonly variant: "info" | "success" | "warning" | "error"
     }
 
+export function isTreeBranchForkAction(
+  action: TreeBranchAction,
+): action is Extract<TreeBranchAction, { kind: "fork" }> {
+  return action.kind === "fork"
+}
+
 export type PlanTreeBranchActionInput = {
   readonly row: TreeFlatRow | undefined
   readonly transcripts: SessionTranscriptMap

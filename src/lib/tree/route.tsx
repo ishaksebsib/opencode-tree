@@ -1,23 +1,34 @@
 /** @jsxImportSource @opentui/solid */
 
-import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
+import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
+import { createComponent, createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
 import { executeTreeBranchAction } from "../opencode/branch"
 import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
 import { bootstrapTree } from "./bootstrap"
-import { planTreeBranchAction } from "./branch"
+import {
+  isTreeBranchForkAction,
+  planTreeBranchAction,
+  type TreeBranchAction,
+} from "./branch"
+import {
+  TreeBranchSummaryDialog,
+  TreeBranchSummaryPromptDialog,
+  type TreeBranchSummaryDialogUI,
+} from "./components/branch-summary-dialog"
 import type { FlatTreeRows, TreeFlatRow } from "./flatten"
 import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
+import type { TreeBranchSummaryRequest } from "./summary-option"
 import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
 
 export type TreeRouteProps = {
   readonly client: OpencodeClient
+  readonly ui: Pick<TuiPluginApi["ui"], "dialog"> & TreeBranchSummaryDialogUI
   readonly projectRoot?: string
   readonly storageRoot?: string
   readonly sessionID?: string
@@ -87,6 +98,88 @@ export function TreeRoute(props: TreeRouteProps) {
   })
   const treeWidth = createMemo(() => getTreeContentWidth(dimensions().width))
 
+  const runTreeBranchAction = (action: TreeBranchAction) => {
+    const bootstrapResult = bootstrap()
+    const treeData = projectedTreeData()
+    if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
+
+    setActionErrorMessage(undefined)
+    setBranching(true)
+    void executeTreeBranchAction(
+      {
+        action,
+        projectRoot: bootstrapResult.projectRoot,
+        storageRoot: bootstrapResult.storageRoot,
+        snapshot: bootstrapResult.snapshot,
+      },
+      {
+        client: props.client,
+        navigateToSession: props.navigateToSession,
+      },
+    )
+      .catch((error) => {
+        setActionErrorMessage(error instanceof Error ? error.message : String(error))
+      })
+      .finally(() => {
+        setBranching(false)
+      })
+  }
+
+  const showSummaryPendingNotice = (request: TreeBranchSummaryRequest) => {
+    if (!props.projectRoot) return
+
+    const message =
+      request.kind === "summarize-with-custom-prompt"
+        ? "Summary generation is not implemented yet. Custom instructions were captured for the next step."
+        : "Summary generation is not implemented yet."
+
+    void props.client.tui.showToast({
+      directory: props.projectRoot,
+      message,
+      variant: "warning",
+    })
+  }
+
+  const handleBranchSummaryRequest = (
+    action: Extract<TreeBranchAction, { kind: "fork" }>,
+    request: TreeBranchSummaryRequest,
+  ) => {
+    props.ui.dialog.clear()
+
+    if (request.kind === "no-summary") {
+      runTreeBranchAction(action)
+      return
+    }
+
+    showSummaryPendingNotice(request)
+  }
+
+  const openBranchSummaryDialog = (action: Extract<TreeBranchAction, { kind: "fork" }>) => {
+    const openCustomPromptDialog = () => {
+      props.ui.dialog.replace(() =>
+        createComponent(TreeBranchSummaryPromptDialog, {
+          ui: props.ui,
+          onConfirm: (request) => {
+            handleBranchSummaryRequest(action, request)
+          },
+          onCancel: () => {
+            openBranchSummaryDialog(action)
+          },
+        }),
+      )
+    }
+
+    props.ui.dialog.replace(() =>
+      createComponent(TreeBranchSummaryDialog, {
+        ui: props.ui,
+        onSelect: (request) => {
+          handleBranchSummaryRequest(action, request)
+        },
+        onSelectCustomPrompt: openCustomPromptDialog,
+      }),
+    )
+  }
+
   createEffect(
     on(projectedTreeData, (nextTreeData) => {
       const currentSessionId = props.sessionID
@@ -108,6 +201,8 @@ export function TreeRoute(props: TreeRouteProps) {
     if (evt.defaultPrevented) return
 
     if (!treeFocused()) return
+
+    if (props.ui.dialog.open) return
 
     if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
       if (!props.sessionID) return
@@ -134,37 +229,22 @@ export function TreeRoute(props: TreeRouteProps) {
     }
 
     if (evt.name === "return") {
-      const bootstrapResult = bootstrap()
       const treeData = projectedTreeData()
-      if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
+      if (!treeData) return
 
       evt.preventDefault()
       evt.stopPropagation()
-      setActionErrorMessage(undefined)
       const action = planTreeBranchAction({
         row: selectedRow(),
         transcripts: treeData.transcripts,
       })
 
-      setBranching(true)
-        void executeTreeBranchAction(
-          {
-            action,
-            projectRoot: bootstrapResult.projectRoot,
-            storageRoot: bootstrapResult.storageRoot,
-            snapshot: bootstrapResult.snapshot,
-          },
-        {
-          client: props.client,
-          navigateToSession: props.navigateToSession,
-        },
-      )
-        .catch((error) => {
-          setActionErrorMessage(error instanceof Error ? error.message : String(error))
-        })
-        .finally(() => {
-          setBranching(false)
-        })
+      if (isTreeBranchForkAction(action)) {
+        openBranchSummaryDialog(action)
+        return
+      }
+
+      runTreeBranchAction(action)
     }
   })
 
