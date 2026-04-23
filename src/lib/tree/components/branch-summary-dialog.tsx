@@ -16,17 +16,17 @@ const branchSummaryDialogOptions = [
   {
     title: "No summary",
     value: "no-summary",
-    description: "Fork immediately with the current branch flow.",
+    description: "Create a new branch without a summary.",
   },
   {
     title: "Summarize",
     value: "summarize",
-    description: "Generate a branch summary before creating the fork.",
+    description: "Summarize from this point, then create a new branch.",
   },
   {
     title: "Summarize with custom prompt",
     value: "summarize-with-custom-prompt",
-    description: "Add extra instructions, then generate the summary.",
+    description: "Add custom instructions for summarization.",
   },
 ] as const satisfies ReadonlyArray<{
   title: string
@@ -194,10 +194,10 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
         <text attributes={TextAttributes.BOLD} fg={props.theme.text}>
-          Branch summary
+          Create Branch
         </text>
-        <text fg={props.theme.textMuted}>
-          {busy() ? "esc cancel" : mode() === "custom-prompt" ? "esc back" : "esc close"}
+        <text fg={props.theme.text}>
+          esc <span style={{ fg: props.theme.textMuted }}>cancel</span>
         </text>
       </box>
 
@@ -206,8 +206,6 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
         fallback={
           <box gap={1}>
             <Spinner color={props.theme.textMuted}>Generating branch summary...</Spinner>
-            <text fg={props.theme.textMuted}>The branch will be created only after summary generation succeeds.</text>
-            <text fg={props.theme.textMuted}>Press esc to cancel.</text>
           </box>
         }
       >
@@ -215,7 +213,6 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
           when={mode() === "select"}
           fallback={
             <box gap={1}>
-              <text fg={props.theme.textMuted}>Add extra summary instructions before the branch is created.</text>
               <textarea
                 ref={(value: TextareaRenderable) => {
                   textarea = value
@@ -262,24 +259,23 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
         </Show>
       </Show>
 
-      <box paddingTop={1} flexDirection="row" gap={2}>
-        <Show when={!busy() && mode() === "select"}>
-          <text fg={props.theme.text}>
-            enter <span style={{ fg: props.theme.textMuted }}>select</span>
-          </text>
-          <text fg={props.theme.text}>
-            j/k <span style={{ fg: props.theme.textMuted }}>move</span>
-          </text>
-        </Show>
-        <Show when={!busy() && mode() === "custom-prompt"}>
-          <text fg={props.theme.text}>
-            enter <span style={{ fg: props.theme.textMuted }}>submit</span>
-          </text>
-        </Show>
-        <Show when={busy()}>
-          <text fg={props.theme.textMuted}>processing...</text>
-        </Show>
-      </box>
+      <Show when={!busy()}>
+        <box paddingTop={1} flexDirection="row" gap={2}>
+          <Show when={mode() === "select"}>
+            <text fg={props.theme.text}>
+              enter <span style={{ fg: props.theme.textMuted }}>select</span>
+            </text>
+            <text fg={props.theme.text}>
+              j/k <span style={{ fg: props.theme.textMuted }}>move</span>
+            </text>
+          </Show>
+          <Show when={mode() === "custom-prompt"}>
+            <text fg={props.theme.text}>
+              enter <span style={{ fg: props.theme.textMuted }}>submit</span>
+            </text>
+          </Show>
+        </box>
+      </Show>
     </box>
   )
 }

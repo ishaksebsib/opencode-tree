@@ -356,12 +356,6 @@ export function TreeRoute(props: TreeRouteProps) {
         <text fg={busy() ? palette().branchingText : palette().helpText}>
           <span style={{ fg: palette().helpKey }}>↑/↓</span> move • <span style={{ fg: palette().helpKey }}>j/k</span> move •{" "}
           <span style={{ fg: palette().helpKey }}>Enter</span> branch • <span style={{ fg: palette().helpKey }}>esc</span> back
-          <Show when={busyState()?.kind === "branching"}>
-            <span style={{ fg: palette().branchingText }}> • branching…</span>
-          </Show>
-          <Show when={busyState()?.kind === "summarizing"}>
-            <span style={{ fg: palette().branchingText }}> • generating summary…</span>
-          </Show>
         </text>
       </box>
 
