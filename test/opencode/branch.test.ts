@@ -42,15 +42,17 @@ describe("executeTreeBranchAction", () => {
     const writeRegistry = mock(async (_storageRoot: string, nextRegistry: TreeRegistry) => nextRegistry)
 
     await executeTreeBranchAction(
-      {
-        action: {
-          kind: "fork",
-          sessionId: "sess_root",
-          anchorMessageId: "msg_user",
-          forkMessageId: "msg_user",
-          appendPromptText: "hello branch",
-        },
-        projectRoot: "/repo",
+        {
+          action: {
+            kind: "fork",
+            plan: {
+              sessionId: "sess_root",
+              anchorMessageId: "msg_user",
+              forkMessageId: "msg_user",
+              appendPromptText: "hello branch",
+            },
+          },
+          projectRoot: "/repo",
         storageRoot,
         snapshot,
       },

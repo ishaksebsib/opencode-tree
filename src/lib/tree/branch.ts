@@ -1,13 +1,17 @@
 import { getMessageTextReplay, type SessionTranscript, type SessionTranscriptMap } from "../opencode/messages"
 import type { TreeFlatRow } from "./flatten"
 
+export type TreeBranchForkPlan = {
+  readonly sessionId: string
+  readonly anchorMessageId: string
+  readonly forkMessageId: string
+  readonly appendPromptText?: string
+}
+
 export type TreeBranchAction =
   | {
       readonly kind: "fork"
-      readonly sessionId: string
-      readonly anchorMessageId: string
-      readonly forkMessageId: string
-      readonly appendPromptText?: string
+      readonly plan: TreeBranchForkPlan
     }
   | {
       readonly kind: "switch-session"
@@ -63,10 +67,12 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
   if (row.role === "user") {
     return {
       kind: "fork",
-      sessionId: row.sessionId,
-      anchorMessageId: row.messageId,
-      forkMessageId: row.messageId,
-      appendPromptText: getMessageTextReplay(record.parts),
+      plan: {
+        sessionId: row.sessionId,
+        anchorMessageId: row.messageId,
+        forkMessageId: row.messageId,
+        appendPromptText: getMessageTextReplay(record.parts),
+      },
     }
   }
 
@@ -80,9 +86,11 @@ export function planTreeBranchAction(input: PlanTreeBranchActionInput): TreeBran
 
   return {
     kind: "fork",
-    sessionId: row.sessionId,
-    anchorMessageId: row.messageId,
-    forkMessageId: nextRecord.info.id,
+    plan: {
+      sessionId: row.sessionId,
+      anchorMessageId: row.messageId,
+      forkMessageId: nextRecord.info.id,
+    },
   }
 }
 

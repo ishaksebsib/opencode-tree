@@ -8,7 +8,7 @@ import {
   type TreeRegistry,
   type TreeSnapshot,
 } from "../storage"
-import type { TreeBranchAction } from "../tree/branch"
+import type { TreeBranchAction, TreeBranchForkPlan } from "../tree/branch"
 
 export type TreeBranchStorage = {
   readRegistry(storageRoot: string): Promise<TreeRegistry>
@@ -29,6 +29,24 @@ export type ExecuteTreeBranchActionDependencies = {
   readonly storage?: TreeBranchStorage
 }
 
+export type ExecuteTreeForkPlanInput = {
+  readonly plan: TreeBranchForkPlan
+  readonly projectRoot: string
+  readonly storageRoot: string
+  readonly snapshot: TreeSnapshot
+}
+
+export type TreeForkExecutionResult = {
+  readonly forkedSessionId: string
+  readonly appendPromptText?: string
+}
+
+export type CompleteTreeForkTransitionInput = {
+  readonly forkedSessionId: string
+  readonly appendPromptText?: string
+  readonly projectRoot: string
+}
+
 const defaultStorage: TreeBranchStorage = {
   readRegistry,
   writeRegistry,
@@ -39,8 +57,6 @@ export async function executeTreeBranchAction(
   input: ExecuteTreeBranchActionInput,
   dependencies: ExecuteTreeBranchActionDependencies,
 ): Promise<void> {
-  const storage = dependencies.storage ?? defaultStorage
-
   if (input.action.kind === "noop") {
     return
   }
@@ -59,9 +75,35 @@ export async function executeTreeBranchAction(
     return
   }
 
+  const forked = await executeTreeForkPlan(
+    {
+      plan: input.action.plan,
+      projectRoot: input.projectRoot,
+      storageRoot: input.storageRoot,
+      snapshot: input.snapshot,
+    },
+    dependencies,
+  )
+
+  await completeTreeForkTransition(
+    {
+      forkedSessionId: forked.forkedSessionId,
+      appendPromptText: forked.appendPromptText,
+      projectRoot: input.projectRoot,
+    },
+    dependencies,
+  )
+}
+
+export async function executeTreeForkPlan(
+  input: ExecuteTreeForkPlanInput,
+  dependencies: ExecuteTreeBranchActionDependencies,
+): Promise<TreeForkExecutionResult> {
+  const storage = dependencies.storage ?? defaultStorage
+
   const forked = await dependencies.client.session.fork({
-    sessionID: input.action.sessionId,
-    messageID: input.action.forkMessageId,
+    sessionID: input.plan.sessionId,
+    messageID: input.plan.forkMessageId,
     directory: input.projectRoot,
   })
 
@@ -72,22 +114,33 @@ export async function executeTreeBranchAction(
 
   const nextSnapshot = appendChildSession(input.snapshot, {
     sessionId: forkedSessionId,
-    parentSessionId: input.action.sessionId,
-    anchorMessageId: input.action.anchorMessageId,
+    parentSessionId: input.plan.sessionId,
+    anchorMessageId: input.plan.anchorMessageId,
   })
   const registry = await storage.readRegistry(input.storageRoot)
   const nextRegistry = registerSessionTree(registry, forkedSessionId, input.snapshot.treeId)
 
   await storage.writeSnapshot(input.storageRoot, nextSnapshot)
   await storage.writeRegistry(input.storageRoot, nextRegistry)
-  await dependencies.navigateToSession(forkedSessionId)
 
-  if (!input.action.appendPromptText) return
+  return {
+    forkedSessionId,
+    appendPromptText: input.plan.appendPromptText,
+  }
+}
+
+export async function completeTreeForkTransition(
+  input: CompleteTreeForkTransitionInput,
+  dependencies: Pick<ExecuteTreeBranchActionDependencies, "client" | "navigateToSession">,
+): Promise<void> {
+  await dependencies.navigateToSession(input.forkedSessionId)
+
+  if (!input.appendPromptText) return
 
   await waitForRouteTransition()
   await dependencies.client.tui.appendPrompt({
     directory: input.projectRoot,
-    text: input.action.appendPromptText,
+    text: input.appendPromptText,
   })
 }
 

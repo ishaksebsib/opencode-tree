@@ -123,10 +123,12 @@ describe("planTreeBranchAction", () => {
       }),
     ).toEqual({
       kind: "fork",
-      sessionId: "sess_root",
-      anchorMessageId: "msg_user",
-      forkMessageId: "msg_user",
-      appendPromptText: "hello branch",
+      plan: {
+        sessionId: "sess_root",
+        anchorMessageId: "msg_user",
+        forkMessageId: "msg_user",
+        appendPromptText: "hello branch",
+      },
     })
   })
 
@@ -143,9 +145,11 @@ describe("planTreeBranchAction", () => {
       }),
     ).toEqual({
       kind: "fork",
-      sessionId: "sess_root",
-      anchorMessageId: "msg_assistant",
-      forkMessageId: "msg_after",
+      plan: {
+        sessionId: "sess_root",
+        anchorMessageId: "msg_assistant",
+        forkMessageId: "msg_after",
+      },
     })
   })
 
