@@ -243,7 +243,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
                     flexDirection="column"
                     paddingLeft={1}
                     paddingRight={1}
-                    paddingTop={0}
+                    paddingTop={1}
                     paddingBottom={1}
                     backgroundColor={selected() ? props.theme.backgroundElement : undefined}
                   >
