@@ -5,7 +5,11 @@ import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { createComponent, createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
 import { executeTreeBranchAction, executeTreeSummaryFork } from "../opencode/branch"
-import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
+import {
+  serializeSessionMessageRecordsForSummary,
+  type LoadSnapshotSessionTranscripts,
+  type SessionTranscriptMap,
+} from "../opencode/messages"
 import { bootstrapTree } from "./bootstrap"
 import {
   isTreeBranchForkAction,
@@ -22,7 +26,7 @@ import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
-import { collectTreeBranchSummarySlice, serializeTreeBranchSummarySlice } from "./summary"
+import { collectTreeBranchSummarySlice } from "./summary"
 import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
 
@@ -161,7 +165,7 @@ export function TreeRoute(props: TreeRouteProps) {
     const row = selectedRow()
     if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
 
-    let conversation: string
+      let conversation: string
 
     try {
       const summarySlice = collectTreeBranchSummarySlice({
@@ -169,7 +173,7 @@ export function TreeRoute(props: TreeRouteProps) {
         transcripts: treeData.transcripts,
       })
 
-      conversation = serializeTreeBranchSummarySlice(summarySlice)
+        conversation = serializeSessionMessageRecordsForSummary(summarySlice.messages)
     } catch (error) {
       closeSummaryDialog()
       setActionErrorMessage(`Summary generation failed: ${error instanceof Error ? error.message : String(error)}`)

@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import type { AssistantMessage, FilePart, ReasoningPart, TextPart, ToolPart, UserMessage } from "@opencode-ai/sdk/v2"
-import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
-import { collectTreeBranchSummarySlice, serializeTreeBranchSummarySlice } from "../../src/lib/tree/summary"
+import {
+  createSessionTranscript,
+  serializeSessionMessageRecordsForSummary,
+  type SessionTranscriptMap,
+} from "../../src/lib/opencode/messages"
+import { collectTreeBranchSummarySlice } from "../../src/lib/tree/summary"
 import type { TreeFlatRow } from "../../src/lib/tree/flatten"
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
@@ -212,7 +216,7 @@ describe("collectTreeBranchSummarySlice", () => {
   })
 })
 
-describe("serializeTreeBranchSummarySlice", () => {
+describe("serializeSessionMessageRecordsForSummary", () => {
   test("serializes selected session tail into summary-safe text", () => {
     const slice = collectTreeBranchSummarySlice({
       row: createMessageRow({
@@ -224,7 +228,7 @@ describe("serializeTreeBranchSummarySlice", () => {
       transcripts,
     })
 
-    expect(serializeTreeBranchSummarySlice(slice)).toBe(
+    expect(serializeSessionMessageRecordsForSummary(slice.messages)).toBe(
       [
         "[Assistant reasoning]: compare two options",
         "[Assistant]: I checked the file.",
