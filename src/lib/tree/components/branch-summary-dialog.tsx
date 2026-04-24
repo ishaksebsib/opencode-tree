@@ -6,11 +6,8 @@ import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { Spinner } from "../../components/spinner"
-import {
-  createTreeBranchSummaryRequest,
-  type TreeBranchSummaryOption,
-  type TreeBranchSummaryRequest,
-} from "../summary-option"
+
+type TreeBranchSummaryDialogOption = "no-summary" | "summarize" | "summarize-with-custom-prompt"
 
 const branchSummaryDialogOptions = [
   {
@@ -30,11 +27,20 @@ const branchSummaryDialogOptions = [
   },
 ] as const satisfies ReadonlyArray<{
   title: string
-  value: TreeBranchSummaryOption
+  value: TreeBranchSummaryDialogOption
   description: string
 }>
 
 export type TreeBranchSummaryDialogUI = Pick<TuiPluginApi["ui"], "dialog">
+
+export type TreeBranchSummaryRequest =
+  | {
+      readonly kind: "no-summary"
+    }
+  | {
+      readonly kind: "summarize"
+      readonly customInstructions?: string
+    }
 
 export type TreeBranchSummaryDialogProps = {
   readonly ui: TreeBranchSummaryDialogUI
@@ -146,7 +152,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     }
   })
 
-  const selectOption = async (option: TreeBranchSummaryOption) => {
+  const selectOption = async (option: TreeBranchSummaryDialogOption) => {
     if (busy()) return
 
     if (option === "summarize-with-custom-prompt") {
@@ -155,7 +161,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     }
 
     if (option === "no-summary") {
-      props.onSelect(createTreeBranchSummaryRequest(option))
+      props.onSelect({ kind: "no-summary" })
       return
     }
 
@@ -166,8 +172,8 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     if (busy()) return
 
     await submitRequest({
-      kind: "summarize-with-custom-prompt",
-      customPrompt: customInstructions().trim(),
+      kind: "summarize",
+      customInstructions: normalizeCustomInstructions(customInstructions()),
     })
   }
 
@@ -284,4 +290,9 @@ function waitForDialogRender(): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, 1)
   })
+}
+
+function normalizeCustomInstructions(value: string): string | undefined {
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : undefined
 }

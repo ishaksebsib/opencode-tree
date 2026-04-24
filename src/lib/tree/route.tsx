@@ -14,6 +14,7 @@ import {
 } from "./branch"
 import {
   TreeBranchSummaryDialog,
+  type TreeBranchSummaryRequest,
   type TreeBranchSummaryDialogUI,
 } from "./components/branch-summary-dialog"
 import type { FlatTreeRows, TreeFlatRow } from "./flatten"
@@ -21,10 +22,6 @@ import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
-import {
-  getTreeBranchSummaryCustomInstructions,
-  type TreeBranchSummaryRequest,
-} from "./summary-option"
 import { collectTreeBranchSummarySlice, serializeTreeBranchSummarySlice } from "./summary"
 import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
@@ -192,7 +189,7 @@ export function TreeRoute(props: TreeRouteProps) {
           storageRoot: bootstrapResult.storageRoot,
           snapshot: bootstrapResult.snapshot,
           conversation,
-          customInstructions: getTreeBranchSummaryCustomInstructions(request),
+          customInstructions: request.customInstructions,
           signal: controller.signal,
         },
         {
