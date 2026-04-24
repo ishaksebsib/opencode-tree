@@ -1,10 +1,10 @@
 import { describe, expect, mock, test } from "bun:test"
 import type { OpencodeClient, Part } from "@opencode-ai/sdk/v2"
-import { generateTreeBranchSummary } from "../../src/lib/opencode/summary"
 import {
   buildTreeBranchSummaryPrompt,
+  generateTreeBranchSummary,
   TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT,
-} from "../../src/lib/tree/summary-prompt"
+} from "../../src/lib/opencode/summary"
 
 function createResult<T>(input: { data?: T; error?: unknown; status?: number }) {
   return {

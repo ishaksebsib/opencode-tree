@@ -6,7 +6,7 @@ import {
   buildTreeBranchSummaryMessage,
   buildTreeBranchSummaryInstructions,
   buildTreeBranchSummaryPrompt,
-} from "../../src/lib/tree/summary-prompt"
+} from "../../src/lib/opencode/summary"
 
 describe("buildTreeBranchSummaryInstructions", () => {
   test("returns Pi-style default instructions by default", () => {

@@ -1,5 +1,9 @@
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
-import { generateTreeBranchSummary, type GenerateTreeBranchSummaryInput } from "./summary"
+import {
+  buildTreeBranchSummaryMessage,
+  generateTreeBranchSummary,
+  type GenerateTreeBranchSummaryInput,
+} from "./summary"
 import {
   appendChildSession,
   readRegistry,
@@ -9,7 +13,6 @@ import {
   type TreeRegistry,
   type TreeSnapshot,
 } from "../storage"
-import { buildTreeBranchSummaryMessage } from "../tree/summary-prompt"
 import type { TreeBranchAction, TreeBranchForkPlan } from "../tree/branch"
 
 export type TreeBranchStorage = {

@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from "bun:test"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { executeTreeBranchAction, executeTreeSummaryFork } from "../../src/lib/opencode/branch"
-import { buildTreeBranchSummaryMessage } from "../../src/lib/tree/summary-prompt"
+import { buildTreeBranchSummaryMessage } from "../../src/lib/opencode/summary"
 import type { TreeRegistry, TreeSnapshot } from "../../src/lib/storage"
 
 const snapshot: TreeSnapshot = {
