@@ -4,9 +4,7 @@ export type TreeRouteParams = {
   readonly sessionID?: string
 }
 
-export function isSessionRoute(
-  current: TuiRouteCurrent,
-): current is Extract<TuiRouteCurrent, { name: "session" }> {
+export function isSessionRoute(current: TuiRouteCurrent): current is Extract<TuiRouteCurrent, { name: "session" }> {
   return current.name === "session"
 }
 

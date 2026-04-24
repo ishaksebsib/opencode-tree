@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import {
   createEmptyRegistry,
   readRegistry,
@@ -7,7 +8,8 @@ import {
   type TreeRegistry,
   type TreeSnapshot,
 } from "../storage"
-import { createTreeId, type TreeIdGenerator } from "./tree-id"
+
+export type TreeIdGenerator = () => string
 
 export type MissingSessionContextBootstrapResult = {
   readonly kind: "missing-session-context"
@@ -64,6 +66,10 @@ const defaultDependencies: TreeBootstrapDependencies = {
     writeSnapshot,
   },
   createTreeId,
+}
+
+export function createTreeId(generateUUID: TreeIdGenerator = randomUUID): string {
+  return `tree_${generateUUID().replaceAll("-", "")}`
 }
 
 export function createRootTreeSnapshot(treeId: string, sessionID: string): TreeSnapshot {

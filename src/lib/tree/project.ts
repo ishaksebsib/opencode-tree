@@ -1,5 +1,8 @@
+import type { TuiState } from "@opencode-ai/plugin/tui"
 import type { SessionTranscript, SessionTranscriptMap } from "../opencode/messages"
 import type { TreeSnapshot } from "../storage"
+
+export type OpenCodePathState = Pick<TuiState["path"], "worktree" | "directory">
 
 export type ProjectedMessageNode = {
   readonly kind: "message"
@@ -15,6 +18,14 @@ export type ProjectedSessionNode = {
   readonly status: SessionTranscript["status"]
   readonly childSessions: readonly ProjectedSessionNode[]
   readonly messages: readonly ProjectedMessageNode[]
+}
+
+export function resolveProjectRoot(path: OpenCodePathState): string | undefined {
+  const worktree = path.worktree.trim()
+  if (worktree) return worktree
+
+  const directory = path.directory.trim()
+  return directory || undefined
 }
 
 export function projectSessionTree(

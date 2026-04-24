@@ -3,9 +3,9 @@
 import { ScrollBoxRenderable, TextAttributes } from "@opentui/core"
 import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import { createEffect, createMemo, For, on, onCleanup, onMount } from "solid-js"
-import type { TreeFlatRow } from "./flatten"
-import { formatTreeRowParts } from "./layout"
-import { getTreeRowBackground, getTreeRowBorder, getTreeRowForeground, mapTreeTheme } from "./theme"
+import type { TreeFlatRow } from "../flatten"
+import { formatTreeRowParts } from "../layout"
+import { getTreeRowBackground, getTreeRowBorder, getTreeRowForeground, mapTreeTheme } from "../theme"
 
 export type TreeViewProps = {
   readonly rows: readonly TreeFlatRow[]

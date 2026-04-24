@@ -6,6 +6,7 @@ import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { Spinner } from "../../components/spinner"
+import type { TreeBranchSummaryRequest } from "../route-branching"
 
 type TreeBranchSummaryDialogOption = "no-summary" | "summarize" | "summarize-with-custom-prompt"
 
@@ -32,15 +33,6 @@ const branchSummaryDialogOptions = [
 }>
 
 export type TreeBranchSummaryDialogUI = Pick<TuiPluginApi["ui"], "dialog">
-
-export type TreeBranchSummaryRequest =
-  | {
-      readonly kind: "no-summary"
-    }
-  | {
-      readonly kind: "summarize"
-      readonly customInstructions?: string
-    }
 
 export type TreeBranchSummaryDialogProps = {
   readonly ui: TreeBranchSummaryDialogUI

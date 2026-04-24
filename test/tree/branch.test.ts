@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
 import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
-import { planTreeBranchAction } from "../../src/lib/tree/branch"
+import { collectTreeBranchSummarySlice, planTreeBranchAction } from "../../src/lib/tree/branch"
 import type { TreeFlatRow } from "../../src/lib/tree/flatten"
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
@@ -207,5 +207,54 @@ describe("planTreeBranchAction", () => {
     ).toEqual({
       kind: "noop",
     })
+  })
+})
+
+describe("collectTreeBranchSummarySlice", () => {
+  test("collects messages from selected row through session end", () => {
+    const slice = collectTreeBranchSummarySlice({
+      row: createMessageRow({
+        sessionId: "sess_root",
+        currentSessionId: "sess_root",
+        messageId: "msg_assistant",
+        role: "assistant",
+      }),
+      transcripts,
+    })
+
+    expect(slice.sessionId).toBe("sess_root")
+    expect(slice.startMessageId).toBe("msg_assistant")
+    expect(slice.messages.map((message) => message.info.id)).toEqual(["msg_assistant", "msg_after"])
+  })
+
+  test("rejects non-message rows", () => {
+    expect(() =>
+      collectTreeBranchSummarySlice({
+        row: {
+          kind: "session",
+          id: "session:sess_root",
+          depth: 0,
+          sessionId: "sess_root",
+          currentSessionId: "sess_root",
+          title: "sess_root",
+          isDeleted: false,
+        },
+        transcripts,
+      }),
+    ).toThrow("Select a message row to summarize.")
+  })
+
+  test("rejects missing transcript messages", () => {
+    expect(() =>
+      collectTreeBranchSummarySlice({
+        row: createMessageRow({
+          sessionId: "sess_root",
+          currentSessionId: "sess_root",
+          messageId: "msg_missing",
+          role: "user",
+        }),
+        transcripts,
+      }),
+    ).toThrow("Message msg_missing is unavailable.")
   })
 })

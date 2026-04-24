@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { resolveProjectRoot } from "../../src/lib/tree/project-root"
+import { resolveProjectRoot } from "../../src/lib/tree/project"
 
 describe("resolveProjectRoot", () => {
   test("prefers worktree when present", () => {

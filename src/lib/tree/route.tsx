@@ -3,32 +3,22 @@
 import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { createComponent, createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
-import { executeTreeBranchAction, executeTreeSummaryFork } from "../opencode/branch"
-import {
-  serializeSessionMessageRecordsForSummary,
-  type LoadSnapshotSessionTranscripts,
-  type SessionTranscriptMap,
-} from "../opencode/messages"
+import { createEffect, createMemo, createResource, createSignal, Match, on, Show, Switch } from "solid-js"
+import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages"
 import { bootstrapTree } from "./bootstrap"
 import {
-  collectTreeBranchSummarySlice,
   isTreeBranchForkAction,
   planTreeBranchAction,
-  type TreeBranchAction,
 } from "./branch"
-import {
-  TreeBranchSummaryDialog,
-  type TreeBranchSummaryRequest,
-  type TreeBranchSummaryDialogUI,
-} from "./components/branch-summary-dialog"
+import type { TreeBranchSummaryDialogUI } from "./components/branch-summary-dialog"
+import { TreeView } from "./components/tree-view"
 import type { FlatTreeRows, TreeFlatRow } from "./flatten"
 import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
+import { createTreeRouteBranchController } from "./route-branching"
 import { mapTreeTheme } from "./theme"
-import { TreeView } from "./view"
 
 export type TreeRouteProps = {
   readonly client: OpencodeClient
@@ -41,22 +31,8 @@ export type TreeRouteProps = {
   readonly navigateToSession: (sessionId: string) => void | Promise<void>
 }
 
-type TreeForkAction = Extract<TreeBranchAction, { kind: "fork" }>
-
-type TreeRouteBusyState =
-  | {
-      readonly kind: "branching"
-    }
-  | {
-      readonly kind: "summarizing"
-      readonly controller: AbortController
-    }
-
 export function TreeRoute(props: TreeRouteProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | undefined>()
-  const [busyState, setBusyState] = createSignal<TreeRouteBusyState | undefined>()
-  const [actionErrorMessage, setActionErrorMessage] = createSignal<string | undefined>()
-  const [summaryDialogAction, setSummaryDialogAction] = createSignal<TreeForkAction | undefined>()
   const [treeFocused, setTreeFocused] = createSignal(false)
   const dimensions = useTerminalDimensions()
 
@@ -113,147 +89,15 @@ export function TreeRoute(props: TreeRouteProps) {
     return rows()[index]
   })
   const treeWidth = createMemo(() => getTreeContentWidth(dimensions().width))
-  const busy = createMemo(() => busyState() !== undefined)
-
-  const cancelActiveSummary = () => {
-    const currentBusyState = busyState()
-    if (currentBusyState?.kind !== "summarizing") return
-    currentBusyState.controller.abort()
-  }
-
-  const closeSummaryDialog = () => {
-    setSummaryDialogAction(undefined)
-
-    if (props.ui.dialog.open) {
-      props.ui.dialog.clear()
-    }
-  }
-
-  const runTreeBranchAction = (action: TreeBranchAction) => {
-    const bootstrapResult = bootstrap()
-    const treeData = projectedTreeData()
-    if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
-
-    setActionErrorMessage(undefined)
-    setBusyState({ kind: "branching" })
-    void executeTreeBranchAction(
-      {
-        action,
-        projectRoot: bootstrapResult.projectRoot,
-        storageRoot: bootstrapResult.storageRoot,
-        snapshot: bootstrapResult.snapshot,
-      },
-      {
-        client: props.client,
-        navigateToSession: props.navigateToSession,
-      },
-    )
-      .catch((error) => {
-        setActionErrorMessage(error instanceof Error ? error.message : String(error))
-      })
-      .finally(() => {
-        setBusyState(undefined)
-      })
-  }
-
-  const runTreeSummaryBranchAction = async (
-    action: TreeForkAction,
-    request: Exclude<TreeBranchSummaryRequest, { kind: "no-summary" }>,
-  ): Promise<void> => {
-    const bootstrapResult = bootstrap()
-    const treeData = projectedTreeData()
-    const row = selectedRow()
-    if (!bootstrapResult || bootstrapResult.kind === "missing-session-context" || !treeData) return
-
-      let conversation: string
-
-    try {
-      const summarySlice = collectTreeBranchSummarySlice({
-        row,
-        transcripts: treeData.transcripts,
-      })
-
-        conversation = serializeSessionMessageRecordsForSummary(summarySlice.messages)
-    } catch (error) {
-      closeSummaryDialog()
-      setActionErrorMessage(`Summary generation failed: ${error instanceof Error ? error.message : String(error)}`)
-      return
-    }
-
-    const controller = new AbortController()
-
-    setActionErrorMessage(undefined)
-    setBusyState({ kind: "summarizing", controller })
-
-    try {
-      await executeTreeSummaryFork(
-        {
-          plan: action.plan,
-          projectRoot: bootstrapResult.projectRoot,
-          storageRoot: bootstrapResult.storageRoot,
-          snapshot: bootstrapResult.snapshot,
-          conversation,
-          customInstructions: request.customInstructions,
-          signal: controller.signal,
-        },
-        {
-          client: props.client,
-          navigateToSession: props.navigateToSession,
-        },
-      )
-
-      closeSummaryDialog()
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      closeSummaryDialog()
-
-      if (message === "Summary generation cancelled.") {
-        return
-      }
-
-      setActionErrorMessage(`Summary generation failed: ${message}`)
-    } finally {
-      setBusyState(undefined)
-    }
-  }
-
-  const handleBranchSummaryRequest = (action: TreeForkAction, request: TreeBranchSummaryRequest): Promise<void> | void => {
-    if (request.kind === "no-summary") {
-      closeSummaryDialog()
-      runTreeBranchAction(action)
-      return
-    }
-
-    return runTreeSummaryBranchAction(action, request)
-  }
-
-  const openBranchSummaryDialog = (action: TreeForkAction) => {
-    setActionErrorMessage(undefined)
-    setSummaryDialogAction(action)
-  }
-
-  createEffect(
-    on(summaryDialogAction, (nextDialogAction) => {
-      if (!nextDialogAction) return
-
-      props.ui.dialog.replace(
-        () =>
-          createComponent(TreeBranchSummaryDialog, {
-            ui: props.ui,
-            theme: theme(),
-            onClose: closeSummaryDialog,
-            onCancelBusy: cancelActiveSummary,
-            onSelect: (request) => handleBranchSummaryRequest(nextDialogAction, request),
-          }),
-        () => {
-          cancelActiveSummary()
-          setSummaryDialogAction((currentDialogAction) =>
-            currentDialogAction === nextDialogAction ? undefined : currentDialogAction,
-          )
-        },
-      )
-    }),
-  )
+  const branchController = createTreeRouteBranchController({
+    client: props.client,
+    ui: props.ui,
+    theme,
+    navigateToSession: props.navigateToSession,
+    bootstrap,
+    projectedTreeData,
+    selectedRow,
+  })
 
   createEffect(
     on(projectedTreeData, (nextTreeData) => {
@@ -275,7 +119,7 @@ export function TreeRoute(props: TreeRouteProps) {
   useKeyboard((evt) => {
     if (evt.defaultPrevented) return
 
-    const currentBusyState = busyState()
+    const currentBusyState = branchController.busyState()
     if (currentBusyState?.kind === "summarizing" && (evt.name === "escape" || (evt.ctrl && evt.name === "c"))) {
       evt.preventDefault()
       evt.stopPropagation()
@@ -287,7 +131,7 @@ export function TreeRoute(props: TreeRouteProps) {
 
     if (props.ui.dialog.open) return
 
-    if (busy()) return
+    if (branchController.busy()) return
 
     if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
       if (!props.sessionID) return
@@ -325,11 +169,11 @@ export function TreeRoute(props: TreeRouteProps) {
       })
 
       if (isTreeBranchForkAction(action)) {
-        openBranchSummaryDialog(action)
+        branchController.openBranchSummaryDialog(action)
         return
       }
 
-      runTreeBranchAction(action)
+      branchController.runTreeBranchAction(action)
     }
   })
 
@@ -354,15 +198,15 @@ export function TreeRoute(props: TreeRouteProps) {
         paddingBottom={2}
         backgroundColor={palette().panelBackground}
       >
-        <text fg={busy() ? palette().branchingText : palette().helpText}>
+        <text fg={branchController.busy() ? palette().branchingText : palette().helpText}>
           <span style={{ fg: palette().helpKey }}>↑/↓</span> move • <span style={{ fg: palette().helpKey }}>j/k</span> move •{" "}
           <span style={{ fg: palette().helpKey }}>Enter</span> branch • <span style={{ fg: palette().helpKey }}>esc</span> back
         </text>
       </box>
 
-      <Show when={actionErrorMessage()}>
+      <Show when={branchController.actionErrorMessage()}>
         <box backgroundColor={palette().panelBackground} paddingLeft={1} paddingRight={1} paddingTop={0} paddingBottom={1}>
-          <text fg={palette().errorText}>Action error: {actionErrorMessage()}</text>
+          <text fg={palette().errorText}>Action error: {branchController.actionErrorMessage()}</text>
         </box>
       </Show>
 

@@ -4,7 +4,7 @@ import { parseTreePluginOptions } from "./lib/config/plugin"
 import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages"
 import { resolveStorageRoot } from "./lib/storage"
 import { TreeRoute } from "./lib/tree/route"
-import { resolveProjectRoot } from "./lib/tree/project-root"
+import { resolveProjectRoot } from "./lib/tree/project"
 import {
   getTreeRouteParamsForNavigation,
   isSessionRoute,
