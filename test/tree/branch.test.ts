@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test"
-import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
-import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
-import { collectTreeBranchSummarySlice, planTreeBranchAction } from "../../src/lib/tree/branch"
-import type { TreeFlatRow } from "../../src/lib/tree/flatten"
+import { describe, expect, test } from "bun:test";
+import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2";
+import {
+  createSessionTranscript,
+  type SessionTranscriptMap,
+} from "../../src/lib/opencode/messages";
+import { collectTreeBranchSummarySlice, planTreeBranchAction } from "../../src/lib/tree/branch";
+import type { TreeFlatRow } from "../../src/lib/tree/flatten";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -15,10 +18,15 @@ function createUserMessage(id: string, sessionID: string, created: number): User
       providerID: "test-provider",
       modelID: "test-model",
     },
-  }
+  };
 }
 
-function createAssistantMessage(id: string, sessionID: string, created: number, parentID = "msg_user"): AssistantMessage {
+function createAssistantMessage(
+  id: string,
+  sessionID: string,
+  created: number,
+  parentID = "msg_user",
+): AssistantMessage {
   return {
     id,
     sessionID,
@@ -43,7 +51,7 @@ function createAssistantMessage(id: string, sessionID: string, created: number, 
         write: 0,
       },
     },
-  }
+  };
 }
 
 function createTextPart(messageID: string, sessionID: string, text: string): TextPart {
@@ -53,14 +61,14 @@ function createTextPart(messageID: string, sessionID: string, text: string): Tex
     messageID,
     type: "text",
     text,
-  }
+  };
 }
 
 function createMessageRow(input: {
-  sessionId: string
-  currentSessionId: string
-  messageId: string
-  role: "user" | "assistant"
+  sessionId: string;
+  currentSessionId: string;
+  messageId: string;
+  role: "user" | "assistant";
 }): TreeFlatRow {
   return {
     kind: "message",
@@ -71,7 +79,7 @@ function createMessageRow(input: {
     messageId: input.messageId,
     role: input.role,
     preview: input.role,
-  }
+  };
 }
 
 const transcripts: SessionTranscriptMap = {
@@ -107,7 +115,7 @@ const transcripts: SessionTranscriptMap = {
       },
     ],
   }),
-}
+};
 
 describe("planTreeBranchAction", () => {
   test("forks user message at selected message and replays text", () => {
@@ -129,8 +137,8 @@ describe("planTreeBranchAction", () => {
         forkMessageId: "msg_user",
         appendPromptText: "hello branch",
       },
-    })
-  })
+    });
+  });
 
   test("forks assistant message from next message so selected assistant stays visible", () => {
     expect(
@@ -150,8 +158,8 @@ describe("planTreeBranchAction", () => {
         anchorMessageId: "msg_assistant",
         forkMessageId: "msg_after",
       },
-    })
-  })
+    });
+  });
 
   test("switches to session when assistant is last message", () => {
     expect(
@@ -167,8 +175,8 @@ describe("planTreeBranchAction", () => {
     ).toEqual({
       kind: "switch-session",
       sessionId: "sess_leaf",
-    })
-  })
+    });
+  });
 
   test("switches to live session when session row is selected", () => {
     expect(
@@ -187,8 +195,8 @@ describe("planTreeBranchAction", () => {
     ).toEqual({
       kind: "switch-session",
       sessionId: "sess_root",
-    })
-  })
+    });
+  });
 
   test("does nothing for deleted session rows", () => {
     expect(
@@ -206,9 +214,9 @@ describe("planTreeBranchAction", () => {
       }),
     ).toEqual({
       kind: "noop",
-    })
-  })
-})
+    });
+  });
+});
 
 describe("collectTreeBranchSummarySlice", () => {
   test("collects messages from selected row through session end", () => {
@@ -220,12 +228,15 @@ describe("collectTreeBranchSummarySlice", () => {
         role: "assistant",
       }),
       transcripts,
-    })
+    });
 
-    expect(slice.sessionId).toBe("sess_root")
-    expect(slice.startMessageId).toBe("msg_assistant")
-    expect(slice.messages.map((message) => message.info.id)).toEqual(["msg_assistant", "msg_after"])
-  })
+    expect(slice.sessionId).toBe("sess_root");
+    expect(slice.startMessageId).toBe("msg_assistant");
+    expect(slice.messages.map((message) => message.info.id)).toEqual([
+      "msg_assistant",
+      "msg_after",
+    ]);
+  });
 
   test("rejects non-message rows", () => {
     expect(() =>
@@ -241,8 +252,8 @@ describe("collectTreeBranchSummarySlice", () => {
         },
         transcripts,
       }),
-    ).toThrow("Select a message row to summarize.")
-  })
+    ).toThrow("Select a message row to summarize.");
+  });
 
   test("rejects missing transcript messages", () => {
     expect(() =>
@@ -255,6 +266,6 @@ describe("collectTreeBranchSummarySlice", () => {
         }),
         transcripts,
       }),
-    ).toThrow("Message msg_missing is unavailable.")
-  })
-})
+    ).toThrow("Message msg_missing is unavailable.");
+  });
+});

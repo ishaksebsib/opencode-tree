@@ -1,6 +1,10 @@
-import { describe, expect, test } from "bun:test"
-import type { FlatTreeRows, TreeFlatRow } from "../../src/lib/tree/flatten"
-import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "../../src/lib/tree/navigation"
+import { describe, expect, test } from "bun:test";
+import type { FlatTreeRows, TreeFlatRow } from "../../src/lib/tree/flatten";
+import {
+  getInitialSelectedRowIndex,
+  moveSelectionDown,
+  moveSelectionUp,
+} from "../../src/lib/tree/navigation";
 
 const rows: readonly TreeFlatRow[] = [
   {
@@ -41,7 +45,7 @@ const rows: readonly TreeFlatRow[] = [
     role: "assistant",
     preview: "child reply",
   },
-]
+];
 
 const flatTree: FlatTreeRows = {
   rows,
@@ -49,16 +53,16 @@ const flatTree: FlatTreeRows = {
     sess_root: 1,
     sess_child: 3,
   },
-}
+};
 
 describe("getInitialSelectedRowIndex", () => {
   test("focuses last row for current session in O(1)", () => {
-    expect(getInitialSelectedRowIndex(flatTree, "sess_child")).toBe(3)
-  })
+    expect(getInitialSelectedRowIndex(flatTree, "sess_child")).toBe(3);
+  });
 
   test("falls back to first row when current session is absent", () => {
-    expect(getInitialSelectedRowIndex(flatTree, "sess_missing")).toBe(0)
-  })
+    expect(getInitialSelectedRowIndex(flatTree, "sess_missing")).toBe(0);
+  });
 
   test("returns undefined for empty rows", () => {
     expect(
@@ -69,23 +73,23 @@ describe("getInitialSelectedRowIndex", () => {
         },
         "sess_child",
       ),
-    ).toBeUndefined()
-  })
-})
+    ).toBeUndefined();
+  });
+});
 
 describe("selection movement", () => {
   test("moves down one row and clamps at end", () => {
-    expect(moveSelectionDown(rows, 1)).toBe(2)
-    expect(moveSelectionDown(rows, 3)).toBe(3)
-  })
+    expect(moveSelectionDown(rows, 1)).toBe(2);
+    expect(moveSelectionDown(rows, 3)).toBe(3);
+  });
 
   test("moves up one row and clamps at start", () => {
-    expect(moveSelectionUp(rows, 2)).toBe(1)
-    expect(moveSelectionUp(rows, 0)).toBe(0)
-  })
+    expect(moveSelectionUp(rows, 2)).toBe(1);
+    expect(moveSelectionUp(rows, 0)).toBe(0);
+  });
 
   test("starts from first or last row when no selection exists", () => {
-    expect(moveSelectionDown(rows, undefined)).toBe(0)
-    expect(moveSelectionUp(rows, undefined)).toBe(3)
-  })
-})
+    expect(moveSelectionDown(rows, undefined)).toBe(0);
+    expect(moveSelectionUp(rows, undefined)).toBe(3);
+  });
+});

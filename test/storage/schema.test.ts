@@ -1,14 +1,14 @@
-import { describe, expect, test } from "bun:test"
-import { createEmptyRegistry, registrySchema, snapshotSchema } from "../../src/lib/storage/schema"
+import { describe, expect, test } from "bun:test";
+import { createEmptyRegistry, registrySchema, snapshotSchema } from "../../src/lib/storage/schema";
 
 describe("createEmptyRegistry", () => {
   test("returns versioned empty registry", () => {
     expect(createEmptyRegistry()).toEqual({
       version: 1,
       sessions: {},
-    })
-  })
-})
+    });
+  });
+});
 
 describe("registrySchema", () => {
   test("accepts valid registry", () => {
@@ -17,20 +17,20 @@ describe("registrySchema", () => {
       sessions: {
         sess_root: "tree_01",
       },
-    })
+    });
 
-    expect(result.success).toBe(true)
-  })
+    expect(result.success).toBe(true);
+  });
 
   test("rejects wrong version", () => {
     const result = registrySchema.safeParse({
       version: 2,
       sessions: {},
-    })
+    });
 
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("snapshotSchema", () => {
   test("accepts valid snapshot", () => {
@@ -52,10 +52,10 @@ describe("snapshotSchema", () => {
           children: [],
         },
       },
-    })
+    });
 
-    expect(result.success).toBe(true)
-  })
+    expect(result.success).toBe(true);
+  });
 
   test("rejects child parent mismatch", () => {
     const result = snapshotSchema.safeParse({
@@ -76,10 +76,10 @@ describe("snapshotSchema", () => {
           children: [],
         },
       },
-    })
+    });
 
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("rejects root anchor", () => {
     const result = snapshotSchema.safeParse({
@@ -94,8 +94,8 @@ describe("snapshotSchema", () => {
           children: [],
         },
       },
-    })
+    });
 
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});

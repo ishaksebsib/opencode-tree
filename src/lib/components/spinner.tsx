@@ -1,11 +1,11 @@
 /** @jsxImportSource @opentui/solid */
 
-import type { RGBA } from "@opentui/core"
-import type { JSX } from "@opentui/solid"
-import { Show } from "solid-js"
-import "opentui-spinner/solid"
+import type { RGBA } from "@opentui/core";
+import type { JSX } from "@opentui/solid";
+import { Show } from "solid-js";
+import "opentui-spinner/solid";
 
-const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export function Spinner(props: { readonly children?: JSX.Element; readonly color?: RGBA }) {
   return (
@@ -15,5 +15,5 @@ export function Spinner(props: { readonly children?: JSX.Element; readonly color
         <text fg={props.color}>{props.children}</text>
       </Show>
     </box>
-  )
+  );
 }

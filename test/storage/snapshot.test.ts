@@ -1,13 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
-import { StorageJsonParseError, StorageSchemaError } from "../../src/lib/storage/file"
-import { getSnapshotFilePath } from "../../src/lib/storage/paths"
-import { type TreeSnapshot } from "../../src/lib/storage/schema"
-import { appendChildSession, readSnapshot, writeSnapshot } from "../../src/lib/storage/snapshot"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { StorageJsonParseError, StorageSchemaError } from "../../src/lib/storage/file";
+import { getSnapshotFilePath } from "../../src/lib/storage/paths";
+import { type TreeSnapshot } from "../../src/lib/storage/schema";
+import { appendChildSession, readSnapshot, writeSnapshot } from "../../src/lib/storage/snapshot";
 
-let storageRoot = ""
+let storageRoot = "";
 
 const snapshot: TreeSnapshot = {
   version: 1,
@@ -27,36 +27,36 @@ const snapshot: TreeSnapshot = {
       children: [],
     },
   },
-}
+};
 
 beforeEach(async () => {
-  storageRoot = await mkdtemp(join(tmpdir(), "opencode-tree-snapshot-"))
-})
+  storageRoot = await mkdtemp(join(tmpdir(), "opencode-tree-snapshot-"));
+});
 
 afterEach(async () => {
   if (storageRoot) {
-    await rm(storageRoot, { recursive: true, force: true })
+    await rm(storageRoot, { recursive: true, force: true });
   }
-})
+});
 
 describe("readSnapshot", () => {
   test("fails for missing snapshot file", async () => {
     expect(readSnapshot(storageRoot, "tree_01")).rejects.toMatchObject({
       code: "ENOENT",
-    })
-  })
+    });
+  });
 
   test("fails clearly for invalid json", async () => {
-    const filePath = getSnapshotFilePath(storageRoot, "tree_01")
-    await mkdir(dirname(filePath), { recursive: true })
-    await writeFile(filePath, "not json", "utf8")
+    const filePath = getSnapshotFilePath(storageRoot, "tree_01");
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, "not json", "utf8");
 
-    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageJsonParseError)
-  })
+    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageJsonParseError);
+  });
 
   test("fails clearly for invalid schema", async () => {
-    const filePath = getSnapshotFilePath(storageRoot, "tree_01")
-    await mkdir(dirname(filePath), { recursive: true })
+    const filePath = getSnapshotFilePath(storageRoot, "tree_01");
+    await mkdir(dirname(filePath), { recursive: true });
     await writeFile(
       filePath,
       JSON.stringify({
@@ -70,11 +70,11 @@ describe("readSnapshot", () => {
         },
       }),
       "utf8",
-    )
+    );
 
-    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageSchemaError)
-  })
-})
+    expect(readSnapshot(storageRoot, "tree_01")).rejects.toBeInstanceOf(StorageSchemaError);
+  });
+});
 
 describe("appendChildSession", () => {
   test("adds child session under parent anchor", () => {
@@ -99,8 +99,8 @@ describe("appendChildSession", () => {
           anchorMessageId: "msg_01",
         },
       ),
-    ).toEqual(snapshot)
-  })
+    ).toEqual(snapshot);
+  });
 
   test("returns original snapshot for duplicate same attachment", () => {
     expect(
@@ -109,8 +109,8 @@ describe("appendChildSession", () => {
         parentSessionId: "sess_root",
         anchorMessageId: "msg_01",
       }),
-    ).toBe(snapshot)
-  })
+    ).toBe(snapshot);
+  });
 
   test("throws for conflicting duplicate attachment", () => {
     expect(() =>
@@ -119,20 +119,20 @@ describe("appendChildSession", () => {
         parentSessionId: "sess_root",
         anchorMessageId: "msg_other",
       }),
-    ).toThrow("Session sess_child is already attached to parent sess_root at anchor msg_01")
-  })
-})
+    ).toThrow("Session sess_child is already attached to parent sess_root at anchor msg_01");
+  });
+});
 
 describe("writeSnapshot", () => {
   test("creates parent dirs and round-trips valid data", async () => {
-    const written = await writeSnapshot(storageRoot, snapshot)
-    expect(written).toEqual(snapshot)
+    const written = await writeSnapshot(storageRoot, snapshot);
+    expect(written).toEqual(snapshot);
 
-    expect(readSnapshot(storageRoot, "tree_01")).resolves.toEqual(snapshot)
+    expect(readSnapshot(storageRoot, "tree_01")).resolves.toEqual(snapshot);
 
-    const content = await readFile(getSnapshotFilePath(storageRoot, "tree_01"), "utf8")
-    expect(content.endsWith("\n")).toBe(true)
-  })
+    const content = await readFile(getSnapshotFilePath(storageRoot, "tree_01"), "utf8");
+    expect(content.endsWith("\n")).toBe(true);
+  });
 
   test("rejects invalid snapshot before write", async () => {
     const invalidSnapshot = JSON.parse(
@@ -146,8 +146,8 @@ describe("writeSnapshot", () => {
           },
         },
       }),
-    )
+    );
 
-    expect(writeSnapshot(storageRoot, invalidSnapshot)).rejects.toBeInstanceOf(StorageSchemaError)
-  })
-})
+    expect(writeSnapshot(storageRoot, invalidSnapshot)).rejects.toBeInstanceOf(StorageSchemaError);
+  });
+});

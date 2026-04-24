@@ -1,14 +1,14 @@
 /** @jsxImportSource @opentui/solid */
 
-import type { TextareaRenderable } from "@opentui/core"
-import { TextAttributes } from "@opentui/core"
-import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui"
-import { useKeyboard } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
-import { Spinner } from "../../components/spinner"
-import type { TreeBranchSummaryRequest } from "../route-branching"
+import type { TextareaRenderable } from "@opentui/core";
+import { TextAttributes } from "@opentui/core";
+import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui";
+import { useKeyboard } from "@opentui/solid";
+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { Spinner } from "../../components/spinner";
+import type { TreeBranchSummaryRequest } from "../route-branching";
 
-type TreeBranchSummaryDialogOption = "no-summary" | "summarize" | "summarize-with-custom-prompt"
+type TreeBranchSummaryDialogOption = "no-summary" | "summarize" | "summarize-with-custom-prompt";
 
 const branchSummaryDialogOptions = [
   {
@@ -27,47 +27,49 @@ const branchSummaryDialogOptions = [
     description: "Add custom instructions for summarization.",
   },
 ] as const satisfies ReadonlyArray<{
-  title: string
-  value: TreeBranchSummaryDialogOption
-  description: string
-}>
+  title: string;
+  value: TreeBranchSummaryDialogOption;
+  description: string;
+}>;
 
-export type TreeBranchSummaryDialogUI = Pick<TuiPluginApi["ui"], "dialog">
+export type TreeBranchSummaryDialogUI = Pick<TuiPluginApi["ui"], "dialog">;
 
 export type TreeBranchSummaryDialogProps = {
-  readonly ui: TreeBranchSummaryDialogUI
-  readonly theme: TuiThemeCurrent
-  readonly onClose: () => void
-  readonly onCancelBusy: () => void
-  readonly onSelect: (request: TreeBranchSummaryRequest) => Promise<void> | void
-}
+  readonly ui: TreeBranchSummaryDialogUI;
+  readonly theme: TuiThemeCurrent;
+  readonly onClose: () => void;
+  readonly onCancelBusy: () => void;
+  readonly onSelect: (request: TreeBranchSummaryRequest) => Promise<void> | void;
+};
 
-type TreeBranchSummaryDialogMode = "select" | "custom-prompt"
+type TreeBranchSummaryDialogMode = "select" | "custom-prompt";
 
 export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
-  const [mode, setMode] = createSignal<TreeBranchSummaryDialogMode>("select")
-  const [busy, setBusy] = createSignal(false)
-  const [cancelRequested, setCancelRequested] = createSignal(false)
-  const [selectedIndex, setSelectedIndex] = createSignal(0)
-  const [customInstructions, setCustomInstructions] = createSignal("")
-  const selectedOption = createMemo(() => branchSummaryDialogOptions[selectedIndex()] ?? branchSummaryDialogOptions[0])
+  const [mode, setMode] = createSignal<TreeBranchSummaryDialogMode>("select");
+  const [busy, setBusy] = createSignal(false);
+  const [cancelRequested, setCancelRequested] = createSignal(false);
+  const [selectedIndex, setSelectedIndex] = createSignal(0);
+  const [customInstructions, setCustomInstructions] = createSignal("");
+  const selectedOption = createMemo(
+    () => branchSummaryDialogOptions[selectedIndex()] ?? branchSummaryDialogOptions[0],
+  );
 
-  let disposed = false
-  let textarea: TextareaRenderable | undefined
+  let disposed = false;
+  let textarea: TextareaRenderable | undefined;
 
   onMount(() => {
-    props.ui.dialog.setSize("medium")
-  })
+    props.ui.dialog.setSize("medium");
+  });
 
   onCleanup(() => {
-    disposed = true
-  })
+    disposed = true;
+  });
 
   createEffect(() => {
-    const currentMode = mode()
-    const isBusy = busy()
-    const currentTextarea = textarea
-    if (!currentTextarea || currentTextarea.isDestroyed) return
+    const currentMode = mode();
+    const isBusy = busy();
+    const currentTextarea = textarea;
+    if (!currentTextarea || currentTextarea.isDestroyed) return;
 
     if (currentMode !== "custom-prompt" || isBusy) {
       currentTextarea.traits = isBusy
@@ -75,118 +77,122 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
             suspend: true,
             status: "BUSY",
           }
-        : {}
-      currentTextarea.blur()
-      return
+        : {};
+      currentTextarea.blur();
+      return;
     }
 
     currentTextarea.traits = {
       status: "SUMMARY",
-    }
+    };
 
     setTimeout(() => {
-      if (!textarea || textarea.isDestroyed) return
-      textarea.focus()
-      textarea.gotoLineEnd()
-    }, 1)
-  })
+      if (!textarea || textarea.isDestroyed) return;
+      textarea.focus();
+      textarea.gotoLineEnd();
+    }, 1);
+  });
 
   useKeyboard((evt) => {
     if (busy()) {
       if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
-        evt.preventDefault()
-        evt.stopPropagation()
-        setCancelRequested(true)
-        props.onCancelBusy()
-        return
+        evt.preventDefault();
+        evt.stopPropagation();
+        setCancelRequested(true);
+        props.onCancelBusy();
+        return;
       }
 
-      evt.preventDefault()
-      evt.stopPropagation()
-      return
+      evt.preventDefault();
+      evt.stopPropagation();
+      return;
     }
 
     if (mode() === "custom-prompt") {
       if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
-        evt.preventDefault()
-        evt.stopPropagation()
-        setMode("select")
+        evt.preventDefault();
+        evt.stopPropagation();
+        setMode("select");
       }
 
-      return
+      return;
     }
 
     if (evt.name === "up" || evt.name === "k") {
-      evt.preventDefault()
-      evt.stopPropagation()
-      setSelectedIndex((current) => (current <= 0 ? branchSummaryDialogOptions.length - 1 : current - 1))
-      return
+      evt.preventDefault();
+      evt.stopPropagation();
+      setSelectedIndex((current) =>
+        current <= 0 ? branchSummaryDialogOptions.length - 1 : current - 1,
+      );
+      return;
     }
 
     if (evt.name === "down" || evt.name === "j") {
-      evt.preventDefault()
-      evt.stopPropagation()
-      setSelectedIndex((current) => (current + 1) % branchSummaryDialogOptions.length)
-      return
+      evt.preventDefault();
+      evt.stopPropagation();
+      setSelectedIndex((current) => (current + 1) % branchSummaryDialogOptions.length);
+      return;
     }
 
     if (evt.name === "return") {
-      evt.preventDefault()
-      evt.stopPropagation()
-      void selectOption(selectedOption().value)
-      return
+      evt.preventDefault();
+      evt.stopPropagation();
+      void selectOption(selectedOption().value);
+      return;
     }
 
     if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
-      evt.preventDefault()
-      evt.stopPropagation()
-      props.onClose()
+      evt.preventDefault();
+      evt.stopPropagation();
+      props.onClose();
     }
-  })
+  });
 
   const selectOption = async (option: TreeBranchSummaryDialogOption) => {
-    if (busy()) return
+    if (busy()) return;
 
     if (option === "summarize-with-custom-prompt") {
-      setMode("custom-prompt")
-      return
+      setMode("custom-prompt");
+      return;
     }
 
     if (option === "no-summary") {
-      props.onSelect({ kind: "no-summary" })
-      return
+      props.onSelect({ kind: "no-summary" });
+      return;
     }
 
-    await submitRequest({ kind: "summarize" })
-  }
+    await submitRequest({ kind: "summarize" });
+  };
 
   const submitCustomPrompt = async () => {
-    if (busy()) return
+    if (busy()) return;
 
     await submitRequest({
       kind: "summarize",
       customInstructions: normalizeCustomInstructions(customInstructions()),
-    })
-  }
+    });
+  };
 
-  const submitRequest = async (request: Exclude<TreeBranchSummaryRequest, { kind: "no-summary" }>) => {
-    setCancelRequested(false)
-    setBusy(true)
+  const submitRequest = async (
+    request: Exclude<TreeBranchSummaryRequest, { kind: "no-summary" }>,
+  ) => {
+    setCancelRequested(false);
+    setBusy(true);
 
     try {
-      await waitForDialogRender()
+      await waitForDialogRender();
       if (cancelRequested()) {
-        props.onClose()
-        return
+        props.onClose();
+        return;
       }
 
-      await props.onSelect(request)
+      await props.onSelect(request);
     } finally {
       if (!disposed) {
-        setBusy(false)
+        setBusy(false);
       }
     }
-  }
+  };
 
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
@@ -213,7 +219,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
             <box gap={1}>
               <textarea
                 ref={(value: TextareaRenderable) => {
-                  textarea = value
+                  textarea = value;
                 }}
                 height={3}
                 initialValue={customInstructions()}
@@ -224,10 +230,10 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
                 cursorColor={props.theme.text}
                 keyBindings={[{ name: "return", action: "submit" }]}
                 onContentChange={() => {
-                  setCustomInstructions(textarea?.plainText ?? "")
+                  setCustomInstructions(textarea?.plainText ?? "");
                 }}
                 onSubmit={() => {
-                  void submitCustomPrompt()
+                  void submitCustomPrompt();
                 }}
               />
             </box>
@@ -236,7 +242,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
           <box flexDirection="column">
             <For each={branchSummaryDialogOptions}>
               {(option, index) => {
-                const selected = () => selectedIndex() === index()
+                const selected = () => selectedIndex() === index();
 
                 return (
                   <box
@@ -247,10 +253,12 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
                     paddingBottom={1}
                     backgroundColor={selected() ? props.theme.backgroundElement : undefined}
                   >
-                    <text fg={selected() ? props.theme.primary : props.theme.text}>{option.title}</text>
+                    <text fg={selected() ? props.theme.primary : props.theme.text}>
+                      {option.title}
+                    </text>
                     <text fg={props.theme.textMuted}>{option.description}</text>
                   </box>
-                )
+                );
               }}
             </For>
           </box>
@@ -275,16 +283,16 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
         </box>
       </Show>
     </box>
-  )
+  );
 }
 
 function waitForDialogRender(): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, 1)
-  })
+    setTimeout(resolve, 1);
+  });
 }
 
 function normalizeCustomInstructions(value: string): string | undefined {
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : undefined
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }

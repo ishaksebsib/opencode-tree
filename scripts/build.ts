@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { rm } from "node:fs/promises"
-import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
+import { rm } from "node:fs/promises";
+import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin";
 
-await rm("dist", { recursive: true, force: true })
+await rm("dist", { recursive: true, force: true });
 
 const build = await Bun.build({
   entrypoints: ["./src/tui.ts"],
@@ -24,13 +24,13 @@ const build = await Bun.build({
     "solid-js/*",
   ],
   plugins: [createSolidTransformPlugin()],
-})
+});
 
 if (!build.success) {
   for (const log of build.logs) {
-    console.error(log)
+    console.error(log);
   }
-  process.exit(1)
+  process.exit(1);
 }
 
-await Bun.$`bun x tsc -p tsconfig.build.json`
+await Bun.$`bun x tsc -p tsconfig.build.json`;

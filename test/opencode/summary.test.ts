@@ -1,10 +1,10 @@
-import { describe, expect, mock, test } from "bun:test"
-import type { OpencodeClient, Part } from "@opencode-ai/sdk/v2"
+import { describe, expect, mock, test } from "bun:test";
+import type { OpencodeClient, Part } from "@opencode-ai/sdk/v2";
 import {
   buildTreeBranchSummaryPrompt,
   generateTreeBranchSummary,
   TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT,
-} from "../../src/lib/opencode/summary"
+} from "../../src/lib/opencode/summary";
 
 function createResult<T>(input: { data?: T; error?: unknown; status?: number }) {
   return {
@@ -12,19 +12,19 @@ function createResult<T>(input: { data?: T; error?: unknown; status?: number }) 
     error: input.error,
     request: new Request("http://localhost/test"),
     response: new Response(null, { status: input.status ?? 200 }),
-  }
+  };
 }
 
 type SummaryTestClient = {
-  readonly client: OpencodeClient
-  readonly createSession: ReturnType<typeof mock>
-  readonly promptSession: ReturnType<typeof mock>
-  readonly abortSession: ReturnType<typeof mock>
-  readonly deleteSession: ReturnType<typeof mock>
-}
+  readonly client: OpencodeClient;
+  readonly createSession: ReturnType<typeof mock>;
+  readonly promptSession: ReturnType<typeof mock>;
+  readonly abortSession: ReturnType<typeof mock>;
+  readonly deleteSession: ReturnType<typeof mock>;
+};
 
 function createClient() {
-  const createSession = mock(async () => createResult({ data: { id: "sess_summary" } }))
+  const createSession = mock(async () => createResult({ data: { id: "sess_summary" } }));
   const promptSession = mock(async () =>
     createResult({
       data: {
@@ -41,10 +41,10 @@ function createClient() {
           } satisfies Extract<Part, { type: "text" }>,
         ],
       },
-      }),
-    )
-  const abortSession = mock(async () => createResult({ data: true }))
-  const deleteSession = mock(async () => createResult({ data: true }))
+    }),
+  );
+  const abortSession = mock(async () => createResult({ data: true }));
+  const deleteSession = mock(async () => createResult({ data: true }));
 
   return {
     client: {
@@ -59,12 +59,12 @@ function createClient() {
     promptSession,
     abortSession,
     deleteSession,
-  } satisfies SummaryTestClient
+  } satisfies SummaryTestClient;
 }
 
 describe("generateTreeBranchSummary", () => {
   test("creates helper session, prompts for summary, and deletes helper session", async () => {
-    const client = createClient()
+    const client = createClient();
 
     await expect(
       generateTreeBranchSummary(
@@ -75,12 +75,12 @@ describe("generateTreeBranchSummary", () => {
         },
         { client: client.client },
       ),
-    ).resolves.toBe("## Goal\nShip it")
+    ).resolves.toBe("## Goal\nShip it");
 
     expect(client.createSession).toHaveBeenCalledWith({
       directory: "/repo",
       title: "Tree branch summary",
-    })
+    });
     expect(client.promptSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
@@ -96,16 +96,16 @@ describe("generateTreeBranchSummary", () => {
           }),
         },
       ],
-    })
+    });
     expect(client.deleteSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
-    })
-  })
+    });
+  });
 
   test("aborts and deletes helper session on cancellation", async () => {
-    const client = createClient()
-    const controller = new AbortController()
+    const client = createClient();
+    const controller = new AbortController();
 
     client.promptSession.mockImplementation(
       () =>
@@ -113,18 +113,18 @@ describe("generateTreeBranchSummary", () => {
           controller.signal.addEventListener(
             "abort",
             () => {
-              const abortError = new Error("The operation was aborted")
-              abortError.name = "AbortError"
-              reject(abortError)
+              const abortError = new Error("The operation was aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
             },
             { once: true },
-          )
+          );
         }),
-    )
+    );
 
     setTimeout(() => {
-      controller.abort()
-    })
+      controller.abort();
+    });
 
     await expect(
       generateTreeBranchSummary(
@@ -135,7 +135,7 @@ describe("generateTreeBranchSummary", () => {
         },
         { client: client.client },
       ),
-    ).rejects.toThrow("Summary generation cancelled.")
+    ).rejects.toThrow("Summary generation cancelled.");
 
     expect(client.createSession).toHaveBeenCalledWith(
       {
@@ -143,21 +143,21 @@ describe("generateTreeBranchSummary", () => {
         title: "Tree branch summary",
       },
       { signal: controller.signal },
-    )
-    expect((client.promptSession as any).mock.calls[0]?.[1]).toEqual({ signal: controller.signal })
+    );
+    expect((client.promptSession as any).mock.calls[0]?.[1]).toEqual({ signal: controller.signal });
     expect(client.abortSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
-    })
+    });
     expect(client.deleteSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
-    })
-  })
+    });
+  });
 
   test("treats helper session abort failure as a generation failure", async () => {
-    const client = createClient()
-    const controller = new AbortController()
+    const client = createClient();
+    const controller = new AbortController();
 
     client.promptSession.mockImplementation(
       () =>
@@ -165,14 +165,14 @@ describe("generateTreeBranchSummary", () => {
           controller.signal.addEventListener(
             "abort",
             () => {
-              const abortError = new Error("The operation was aborted")
-              abortError.name = "AbortError"
-              reject(abortError)
+              const abortError = new Error("The operation was aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
             },
             { once: true },
-          )
+          );
         }),
-    )
+    );
     client.abortSession.mockImplementation(async () =>
       createResult({
         error: {
@@ -182,11 +182,11 @@ describe("generateTreeBranchSummary", () => {
         },
         status: 400,
       }),
-    )
+    );
 
     setTimeout(() => {
-      controller.abort()
-    })
+      controller.abort();
+    });
 
     await expect(
       generateTreeBranchSummary(
@@ -197,11 +197,11 @@ describe("generateTreeBranchSummary", () => {
         },
         { client: client.client },
       ),
-    ).rejects.toThrow("Failed to abort summary helper session (400): Session busy")
-  })
+    ).rejects.toThrow("Failed to abort summary helper session (400): Session busy");
+  });
 
   test("deletes helper session even when prompt generation fails", async () => {
-    const client = createClient()
+    const client = createClient();
     client.promptSession.mockImplementation(async () =>
       createResult({
         error: {
@@ -211,7 +211,7 @@ describe("generateTreeBranchSummary", () => {
         },
         status: 400,
       }),
-    )
+    );
 
     await expect(
       generateTreeBranchSummary(
@@ -221,16 +221,16 @@ describe("generateTreeBranchSummary", () => {
         },
         { client: client.client },
       ),
-    ).rejects.toThrow("Failed to generate branch summary (400): Provider unavailable")
+    ).rejects.toThrow("Failed to generate branch summary (400): Provider unavailable");
 
     expect(client.deleteSession).toHaveBeenCalledWith({
       sessionID: "sess_summary",
       directory: "/repo",
-    })
-  })
+    });
+  });
 
   test("treats helper session cleanup failure as a generation failure", async () => {
-    const client = createClient()
+    const client = createClient();
     client.deleteSession.mockImplementation(async () =>
       createResult({
         error: {
@@ -240,7 +240,7 @@ describe("generateTreeBranchSummary", () => {
         },
         status: 400,
       }),
-    )
+    );
 
     await expect(
       generateTreeBranchSummary(
@@ -250,11 +250,11 @@ describe("generateTreeBranchSummary", () => {
         },
         { client: client.client },
       ),
-    ).rejects.toThrow("Failed to delete summary helper session (400): Session busy")
-  })
+    ).rejects.toThrow("Failed to delete summary helper session (400): Session busy");
+  });
 
   test("combines generation and cleanup failures when both happen", async () => {
-    const client = createClient()
+    const client = createClient();
     client.promptSession.mockImplementation(async () =>
       createResult({
         error: {
@@ -264,7 +264,7 @@ describe("generateTreeBranchSummary", () => {
         },
         status: 400,
       }),
-    )
+    );
     client.deleteSession.mockImplementation(async () =>
       createResult({
         error: {
@@ -274,7 +274,7 @@ describe("generateTreeBranchSummary", () => {
         },
         status: 400,
       }),
-    )
+    );
 
     await expect(
       generateTreeBranchSummary(
@@ -286,6 +286,6 @@ describe("generateTreeBranchSummary", () => {
       ),
     ).rejects.toThrow(
       "Failed to generate branch summary (400): Provider unavailable; cleanup failed: Failed to delete summary helper session (400): Session busy",
-    )
-  })
-})
+    );
+  });
+});
