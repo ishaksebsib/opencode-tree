@@ -1,5 +1,12 @@
 import type { OpencodeClient, Part } from "@opencode-ai/sdk/v2"
 
+// NOTE: The prompt definitions below are adapted from a PI coding agent codebase.
+// Original reference:
+// Commit: 81f4cdf3
+// Author: Mario Zechner
+// Date: 2025-12-30
+// Description: "Extract shared compaction/branch-summarization utils"
+
 export const TREE_BRANCH_SUMMARIZATION_SYSTEM_PROMPT = `You are a context summarization assistant. Your task is to read a conversation between a user and an AI coding assistant, then produce a structured summary following the exact format specified.
 
 Do NOT continue the conversation. Do NOT respond to any questions in the conversation. ONLY output the structured summary.`
