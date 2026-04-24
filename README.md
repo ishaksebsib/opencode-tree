@@ -37,7 +37,7 @@ To keep plugin data in the project root .opencode folder, use `local` storage sc
 ## Storage
 
 - if `local`: `<projectRoot>/.opencode/opencode-tree/`
-- if `global`: `<opencode-state>/plugins/opencode-tree/projects/<projectKey>/`
+- if `global`: `<opencode-state>/plugins/opencode-tree/`
   - Where `<opencode-state>` is:
     - Linux: `~/.local/state/opencode`
     - macOS: `~/Library/Application Support/opencode`
