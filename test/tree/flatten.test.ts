@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import type {
   AssistantMessage,
   ReasoningPart,
@@ -7,11 +7,14 @@ import type {
   TextPart,
   ToolPart,
   UserMessage,
-} from "@opencode-ai/sdk/v2"
-import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
-import type { TreeSnapshot } from "../../src/lib/storage"
-import { buildFlatRows } from "../../src/lib/tree/flatten"
-import { projectSessionTree } from "../../src/lib/tree/project"
+} from "@opencode-ai/sdk/v2";
+import {
+  createSessionTranscript,
+  type SessionTranscriptMap,
+} from "../../src/lib/opencode/messages";
+import type { TreeSnapshot } from "../../src/lib/storage";
+import { buildFlatRows } from "../../src/lib/tree/flatten";
+import { projectSessionTree } from "../../src/lib/tree/project";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -24,10 +27,15 @@ function createUserMessage(id: string, sessionID: string, created: number): User
       providerID: "test-provider",
       modelID: "test-model",
     },
-  }
+  };
 }
 
-function createAssistantMessage(id: string, sessionID: string, created: number, parentID = "msg_parent"): AssistantMessage {
+function createAssistantMessage(
+  id: string,
+  sessionID: string,
+  created: number,
+  parentID = "msg_parent",
+): AssistantMessage {
   return {
     id,
     sessionID,
@@ -52,7 +60,7 @@ function createAssistantMessage(id: string, sessionID: string, created: number, 
         write: 0,
       },
     },
-  }
+  };
 }
 
 function createTextPart(messageID: string, sessionID: string, text: string): TextPart {
@@ -62,10 +70,15 @@ function createTextPart(messageID: string, sessionID: string, text: string): Tex
     messageID,
     type: "text",
     text,
-  }
+  };
 }
 
-function createToolPart(messageID: string, sessionID: string, tool: string, input: Record<string, unknown>): ToolPart {
+function createToolPart(
+  messageID: string,
+  sessionID: string,
+  tool: string,
+  input: Record<string, unknown>,
+): ToolPart {
   return {
     id: `${messageID}_tool`,
     sessionID,
@@ -84,7 +97,7 @@ function createToolPart(messageID: string, sessionID: string, tool: string, inpu
         end: 2,
       },
     },
-  }
+  };
 }
 
 function createReasoningPart(messageID: string, sessionID: string, text: string): ReasoningPart {
@@ -98,7 +111,7 @@ function createReasoningPart(messageID: string, sessionID: string, text: string)
       start: 1,
       end: 2,
     },
-  }
+  };
 }
 
 function createStepStartPart(messageID: string, sessionID: string): StepStartPart {
@@ -107,7 +120,7 @@ function createStepStartPart(messageID: string, sessionID: string): StepStartPar
     sessionID,
     messageID,
     type: "step-start",
-  }
+  };
 }
 
 function createStepFinishPart(messageID: string, sessionID: string): StepFinishPart {
@@ -127,7 +140,7 @@ function createStepFinishPart(messageID: string, sessionID: string): StepFinishP
         write: 0,
       },
     },
-  }
+  };
 }
 
 function createRootSnapshot(): TreeSnapshot {
@@ -143,7 +156,7 @@ function createRootSnapshot(): TreeSnapshot {
         children: [],
       },
     },
-  }
+  };
 }
 
 describe("buildFlatRows preview", () => {
@@ -166,23 +179,26 @@ describe("buildFlatRows preview", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
-    const toolRow = rows[1]
+    const rows = buildFlatRows(
+      projectSessionTree(createRootSnapshot(), transcripts),
+      "sess_root",
+    ).rows;
+    const toolRow = rows[1];
 
-    expect(toolRow).toBeDefined()
+    expect(toolRow).toBeDefined();
     expect(toolRow).toMatchObject({
       kind: "message",
-    })
+    });
 
     if (!toolRow || toolRow.kind !== "message") {
-      throw new Error("expected message row")
+      throw new Error("expected message row");
     }
 
-    expect(toolRow.preview).toStartWith("tool:bash command=printf 'a")
-    expect(toolRow.preview).not.toContain("\n")
-  })
+    expect(toolRow.preview).toStartWith("tool:bash command=printf 'a");
+    expect(toolRow.preview).not.toContain("\n");
+  });
 
   test("falls back to reasoning text when assistant has no text or tool", () => {
     const transcripts: SessionTranscriptMap = {
@@ -194,22 +210,29 @@ describe("buildFlatRows preview", () => {
             info: createAssistantMessage("msg_reasoning", "sess_root", 10),
             parts: [
               createStepStartPart("msg_reasoning", "sess_root"),
-              createReasoningPart("msg_reasoning", "sess_root", "Need inspect tree route before moving focus."),
+              createReasoningPart(
+                "msg_reasoning",
+                "sess_root",
+                "Need inspect tree route before moving focus.",
+              ),
               createStepFinishPart("msg_reasoning", "sess_root"),
             ],
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
-    const reasoningRow = rows[1]
+    const rows = buildFlatRows(
+      projectSessionTree(createRootSnapshot(), transcripts),
+      "sess_root",
+    ).rows;
+    const reasoningRow = rows[1];
 
     expect(reasoningRow).toMatchObject({
       kind: "message",
       preview: "reasoning: Need inspect tree route before moving focus.",
-    })
-  })
+    });
+  });
 
   test("keeps user preview from visible text parts", () => {
     const transcripts: SessionTranscriptMap = {
@@ -223,12 +246,15 @@ describe("buildFlatRows preview", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(createRootSnapshot(), transcripts), "sess_root").rows
+    const rows = buildFlatRows(
+      projectSessionTree(createRootSnapshot(), transcripts),
+      "sess_root",
+    ).rows;
     expect(rows[1]).toMatchObject({
       kind: "message",
       preview: "hello from user prompt",
-    })
-  })
-})
+    });
+  });
+});

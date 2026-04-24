@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
-import { resolveProjectRoot } from "../../src/lib/tree/project-root"
+import { describe, expect, test } from "bun:test";
+import { resolveProjectRoot } from "../../src/lib/tree/project";
 
 describe("resolveProjectRoot", () => {
   test("prefers worktree when present", () => {
@@ -8,8 +8,8 @@ describe("resolveProjectRoot", () => {
         worktree: "/repo/root",
         directory: "/repo/root/packages/plugin",
       }),
-    ).toBe("/repo/root")
-  })
+    ).toBe("/repo/root");
+  });
 
   test("falls back to directory", () => {
     expect(
@@ -17,8 +17,8 @@ describe("resolveProjectRoot", () => {
         worktree: "",
         directory: "/repo/root",
       }),
-    ).toBe("/repo/root")
-  })
+    ).toBe("/repo/root");
+  });
 
   test("returns undefined when no path is available", () => {
     expect(
@@ -26,6 +26,6 @@ describe("resolveProjectRoot", () => {
         worktree: "",
         directory: "",
       }),
-    ).toBeUndefined()
-  })
-})
+    ).toBeUndefined();
+  });
+});

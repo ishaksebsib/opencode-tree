@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import type {
   AssistantMessage,
   ReasoningPart,
@@ -7,11 +7,15 @@ import type {
   TextPart,
   ToolPart,
   UserMessage,
-} from "@opencode-ai/sdk/v2"
-import { createSessionTranscript, type SessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages"
-import type { TreeSnapshot } from "../../src/lib/storage"
-import { buildFlatRows } from "../../src/lib/tree/flatten"
-import { projectSessionTree } from "../../src/lib/tree/project"
+} from "@opencode-ai/sdk/v2";
+import {
+  createSessionTranscript,
+  type SessionTranscript,
+  type SessionTranscriptMap,
+} from "../../src/lib/opencode/messages";
+import type { TreeSnapshot } from "../../src/lib/storage";
+import { buildFlatRows } from "../../src/lib/tree/flatten";
+import { projectSessionTree } from "../../src/lib/tree/project";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -24,10 +28,15 @@ function createUserMessage(id: string, sessionID: string, created: number): User
       providerID: "test-provider",
       modelID: "test-model",
     },
-  }
+  };
 }
 
-function createAssistantMessage(id: string, sessionID: string, created: number, parentID = "msg_parent"): AssistantMessage {
+function createAssistantMessage(
+  id: string,
+  sessionID: string,
+  created: number,
+  parentID = "msg_parent",
+): AssistantMessage {
   return {
     id,
     sessionID,
@@ -52,7 +61,7 @@ function createAssistantMessage(id: string, sessionID: string, created: number, 
         write: 0,
       },
     },
-  }
+  };
 }
 
 function createTextPart(messageID: string, sessionID: string, text: string): TextPart {
@@ -62,10 +71,15 @@ function createTextPart(messageID: string, sessionID: string, text: string): Tex
     messageID,
     type: "text",
     text,
-  }
+  };
 }
 
-function createToolPart(messageID: string, sessionID: string, tool: string, input: Record<string, unknown>): ToolPart {
+function createToolPart(
+  messageID: string,
+  sessionID: string,
+  tool: string,
+  input: Record<string, unknown>,
+): ToolPart {
   return {
     id: `${messageID}_tool`,
     sessionID,
@@ -84,7 +98,7 @@ function createToolPart(messageID: string, sessionID: string, tool: string, inpu
         end: 2,
       },
     },
-  }
+  };
 }
 
 function createReasoningPart(messageID: string, sessionID: string, text: string): ReasoningPart {
@@ -98,7 +112,7 @@ function createReasoningPart(messageID: string, sessionID: string, text: string)
       start: 1,
       end: 2,
     },
-  }
+  };
 }
 
 function createStepStartPart(messageID: string, sessionID: string): StepStartPart {
@@ -107,7 +121,7 @@ function createStepStartPart(messageID: string, sessionID: string): StepStartPar
     sessionID,
     messageID,
     type: "step-start",
-  }
+  };
 }
 
 function createStepFinishPart(messageID: string, sessionID: string): StepFinishPart {
@@ -127,7 +141,7 @@ function createStepFinishPart(messageID: string, sessionID: string): StepFinishP
         write: 0,
       },
     },
-  }
+  };
 }
 
 function createTranscript(
@@ -141,7 +155,7 @@ function createTranscript(
       info: createUserMessage(message.id, sessionId, message.created),
       parts: [createTextPart(message.id, sessionId, message.text)],
     })),
-  })
+  });
 }
 
 describe("projectSessionTree", () => {
@@ -164,17 +178,19 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createTranscript("sess_root", [
         { id: "msg_anchor", created: 10, text: "anchor prompt" },
         { id: "msg_after", created: 20, text: "later prompt" },
       ]),
-      sess_child: createTranscript("sess_child", [{ id: "msg_child", created: 30, text: "branch prompt" }]),
-    }
+      sess_child: createTranscript("sess_child", [
+        { id: "msg_child", created: 30, text: "branch prompt" },
+      ]),
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -182,8 +198,8 @@ describe("projectSessionTree", () => {
       "session:sess_child",
       "message:sess_child:msg_child",
       "message:sess_root:msg_after",
-    ])
-  })
+    ]);
+  });
 
   test("keeps sibling branch order from snapshot children array", () => {
     const snapshot: TreeSnapshot = {
@@ -210,15 +226,21 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
-      sess_root: createTranscript("sess_root", [{ id: "msg_anchor", created: 10, text: "anchor prompt" }]),
-      sess_child_a: createTranscript("sess_child_a", [{ id: "msg_a", created: 20, text: "branch a" }]),
-      sess_child_b: createTranscript("sess_child_b", [{ id: "msg_b", created: 15, text: "branch b" }]),
-    }
+      sess_root: createTranscript("sess_root", [
+        { id: "msg_anchor", created: 10, text: "anchor prompt" },
+      ]),
+      sess_child_a: createTranscript("sess_child_a", [
+        { id: "msg_a", created: 20, text: "branch a" },
+      ]),
+      sess_child_b: createTranscript("sess_child_b", [
+        { id: "msg_b", created: 15, text: "branch b" },
+      ]),
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -227,8 +249,8 @@ describe("projectSessionTree", () => {
       "message:sess_child_b:msg_b",
       "session:sess_child_a",
       "message:sess_child_a:msg_a",
-    ])
-  })
+    ]);
+  });
 
   test("hides inherited prefix for user-anchored child sessions", () => {
     const snapshot: TreeSnapshot = {
@@ -249,7 +271,7 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -296,9 +318,9 @@ describe("projectSessionTree", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -309,8 +331,8 @@ describe("projectSessionTree", () => {
       "message:sess_child:msg_branch_user",
       "message:sess_child:msg_branch_reply",
       "message:sess_root:msg_after",
-    ])
-  })
+    ]);
+  });
 
   test("hides inherited prefix through assistant anchor for assistant-anchored child sessions", () => {
     const snapshot: TreeSnapshot = {
@@ -331,7 +353,7 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -370,9 +392,9 @@ describe("projectSessionTree", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -381,8 +403,8 @@ describe("projectSessionTree", () => {
       "session:sess_child",
       "message:sess_child:msg_branch_user",
       "message:sess_root:msg_after_user",
-    ])
-  })
+    ]);
+  });
 
   test("renders deleted session row without messages and keeps descendant sessions visible", () => {
     const snapshot: TreeSnapshot = {
@@ -409,7 +431,7 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -441,9 +463,9 @@ describe("projectSessionTree", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -452,14 +474,14 @@ describe("projectSessionTree", () => {
       "session:sess_grandchild",
       "message:sess_grandchild:msg_grandchild",
       "message:sess_root:msg_after",
-    ])
+    ]);
 
     expect(rows[2]).toMatchObject({
       kind: "session",
       sessionId: "sess_deleted",
       isDeleted: true,
-    })
-  })
+    });
+  });
 
   test("uses assistant tool preview when no visible text exists", () => {
     const snapshot: TreeSnapshot = {
@@ -474,7 +496,7 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -494,16 +516,16 @@ describe("projectSessionTree", () => {
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
-    const toolRow = rows[1]
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const toolRow = rows[1];
 
     expect(toolRow).toMatchObject({
       kind: "message",
       preview: "tool:bash command=rg -n session.messages src",
-    })
-  })
+    });
+  });
 
   test("uses reasoning preview when assistant message has no text or tool", () => {
     const snapshot: TreeSnapshot = {
@@ -518,7 +540,7 @@ describe("projectSessionTree", () => {
           children: [],
         },
       },
-    }
+    };
 
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -529,20 +551,24 @@ describe("projectSessionTree", () => {
             info: createAssistantMessage("msg_reasoning", "sess_root", 10),
             parts: [
               createStepStartPart("msg_reasoning", "sess_root"),
-              createReasoningPart("msg_reasoning", "sess_root", "Need inspect pagination API before projection."),
+              createReasoningPart(
+                "msg_reasoning",
+                "sess_root",
+                "Need inspect pagination API before projection.",
+              ),
               createStepFinishPart("msg_reasoning", "sess_root"),
             ],
           },
         ],
       }),
-    }
+    };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows
-    const reasoningRow = rows[1]
+    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const reasoningRow = rows[1];
 
     expect(reasoningRow).toMatchObject({
       kind: "message",
       preview: "reasoning: Need inspect pagination API before projection.",
-    })
-  })
-})
+    });
+  });
+});

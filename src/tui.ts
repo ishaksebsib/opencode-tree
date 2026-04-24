@@ -1,25 +1,25 @@
-import { createComponent } from "solid-js"
-import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui"
-import { parseTreePluginOptions } from "./lib/config/plugin"
-import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages"
-import { resolveStorageRoot } from "./lib/storage"
-import { TreeRoute } from "./lib/tree/route"
-import { resolveProjectRoot } from "./lib/tree/project-root"
+import { createComponent } from "solid-js";
+import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
+import { parseTreePluginOptions } from "./lib/config/plugin";
+import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages";
+import { resolveStorageRoot } from "./lib/storage";
+import { TreeRoute } from "./lib/tree/route";
+import { resolveProjectRoot } from "./lib/tree/project";
 import {
   getTreeRouteParamsForNavigation,
   isSessionRoute,
   parseTreeRouteParams,
-} from "./lib/tree/route-params"
+} from "./lib/tree/route-params";
 
-const id = "opencode.tree"
-const routeName = "tree"
+const id = "opencode.tree";
+const routeName = "tree";
 
 const tui: TuiPlugin = async (api, options) => {
-  const pluginOptions = parseTreePluginOptions(options)
+  const pluginOptions = parseTreePluginOptions(options);
 
   api.command.register(() => {
-    const current = api.route.current
-    const inSession = isSessionRoute(current)
+    const current = api.route.current;
+    const inSession = isSessionRoute(current);
 
     return [
       {
@@ -32,27 +32,32 @@ const tui: TuiPlugin = async (api, options) => {
           name: "tree",
         },
         onSelect: () => {
-          api.route.navigate(routeName, getTreeRouteParamsForNavigation(api.route.current))
+          api.route.navigate(routeName, getTreeRouteParamsForNavigation(api.route.current));
         },
       },
-    ]
-  })
+    ];
+  });
 
   api.route.register([
     {
       name: routeName,
       render: ({ params }) => {
-        const projectRoot = resolveProjectRoot(api.state.path)
+        const projectRoot = resolveProjectRoot(api.state.path);
         const storageRoot = projectRoot
           ? resolveStorageRoot({
               projectRoot,
               stateRoot: api.state.path.state,
               storageScope: pluginOptions.storageScope,
             })
-          : undefined
+          : undefined;
 
         return createComponent(TreeRoute, {
           client: api.client,
+          ui: {
+            dialog: api.ui.dialog,
+            DialogPrompt: api.ui.DialogPrompt,
+            DialogSelect: api.ui.DialogSelect,
+          },
           projectRoot,
           storageRoot,
           theme: () => api.theme.current,
@@ -60,16 +65,16 @@ const tui: TuiPlugin = async (api, options) => {
             directory: projectRoot,
           }),
           navigateToSession: (sessionId: string) => {
-            api.route.navigate("session", { sessionID: sessionId })
+            api.route.navigate("session", { sessionID: sessionId });
           },
           ...parseTreeRouteParams(params),
-        })
+        });
       },
     },
-  ])
-}
+  ]);
+};
 
 export default {
   id,
   tui,
-} satisfies TuiPluginModule & { id: string }
+} satisfies TuiPluginModule & { id: string };

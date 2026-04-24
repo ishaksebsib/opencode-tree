@@ -22,9 +22,7 @@ Default install config uses global path to store tree state.
 
 ```json
 {
-  "plugin": [
-    ["@ishaksebsib/opencode-tree", { "storageScope": "global" }]
-  ]
+  "plugin": [["@ishaksebsib/opencode-tree", { "storageScope": "global" }]]
 }
 ```
 
@@ -32,9 +30,7 @@ To keep plugin data in the project root .opencode folder, use `local` storage sc
 
 ```json
 {
-  "plugin": [
-    ["@ishaksebsib/opencode-tree", { "storageScope": "local" }]
-  ]
+  "plugin": [["@ishaksebsib/opencode-tree", { "storageScope": "local" }]]
 }
 ```
 

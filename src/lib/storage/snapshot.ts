@@ -1,45 +1,45 @@
-import { readJsonFile, writeJsonFile } from "./file"
-import { getSnapshotFilePath } from "./paths"
-import { snapshotSchema, type TreeSnapshot } from "./schema"
+import { readJsonFile, writeJsonFile } from "./file";
+import { getSnapshotFilePath } from "./paths";
+import { snapshotSchema, type TreeSnapshot } from "./schema";
 
 export async function readSnapshot(storageRoot: string, treeId: string): Promise<TreeSnapshot> {
-  return readJsonFile(getSnapshotFilePath(storageRoot, treeId), snapshotSchema)
+  return readJsonFile(getSnapshotFilePath(storageRoot, treeId), snapshotSchema);
 }
 
 export async function writeSnapshot(
   storageRoot: string,
   snapshot: TreeSnapshot,
 ): Promise<TreeSnapshot> {
-  return writeJsonFile(getSnapshotFilePath(storageRoot, snapshot.treeId), snapshotSchema, snapshot)
+  return writeJsonFile(getSnapshotFilePath(storageRoot, snapshot.treeId), snapshotSchema, snapshot);
 }
 
 export function appendChildSession(
   snapshot: TreeSnapshot,
   input: {
-    sessionId: string
-    parentSessionId: string
-    anchorMessageId: string
+    sessionId: string;
+    parentSessionId: string;
+    anchorMessageId: string;
   },
 ): TreeSnapshot {
-  const parent = snapshot.sessions[input.parentSessionId]
+  const parent = snapshot.sessions[input.parentSessionId];
   if (!parent) {
-    throw new Error(`Missing parent session ${input.parentSessionId}`)
+    throw new Error(`Missing parent session ${input.parentSessionId}`);
   }
 
-  const existingSession = snapshot.sessions[input.sessionId]
+  const existingSession = snapshot.sessions[input.sessionId];
   if (existingSession) {
-    const sameParent = existingSession.parentSessionId === input.parentSessionId
-    const sameAnchor = existingSession.anchorMessageId === input.anchorMessageId
+    const sameParent = existingSession.parentSessionId === input.parentSessionId;
+    const sameAnchor = existingSession.anchorMessageId === input.anchorMessageId;
 
     // Loaded snapshots are schema-validated, so an existing attachment implies the
     // parent already lists the child when parent/anchor match.
     if (sameParent && sameAnchor) {
-      return snapshot
+      return snapshot;
     }
 
     throw new Error(
       `Session ${input.sessionId} is already attached to parent ${existingSession.parentSessionId ?? "<root>"} at anchor ${existingSession.anchorMessageId ?? "<root>"}`,
-    )
+    );
   }
 
   return {
@@ -57,5 +57,5 @@ export function appendChildSession(
         children: [],
       },
     },
-  }
+  };
 }

@@ -1,14 +1,23 @@
-import { describe, expect, test } from "bun:test"
-import type { OpencodeClient, Part, UserMessage } from "@opencode-ai/sdk/v2"
+import { describe, expect, test } from "bun:test";
+import type {
+  AssistantMessage,
+  FilePart,
+  OpencodeClient,
+  Part,
+  ReasoningPart,
+  ToolPart,
+  UserMessage,
+} from "@opencode-ai/sdk/v2";
 import {
   createSessionTranscript,
   createSessionMessagesPageLoader,
   getMessageTextReplay,
   loadSessionTranscript,
   loadSnapshotSessionTranscripts,
+  serializeSessionMessageRecordsForSummary,
   type SessionMessageRecord,
-} from "../../src/lib/opencode/messages"
-import type { TreeSnapshot } from "../../src/lib/storage"
+} from "../../src/lib/opencode/messages";
+import type { TreeSnapshot } from "../../src/lib/storage";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -21,24 +30,132 @@ function createUserMessage(id: string, sessionID: string, created: number): User
       providerID: "test-provider",
       modelID: "test-model",
     },
-  }
+  };
 }
 
 function createMessageRecord(id: string, sessionID: string, created: number): SessionMessageRecord {
   return {
     info: createUserMessage(id, sessionID, created),
     parts: [],
-  }
+  };
+}
+
+function createAssistantMessage(
+  id: string,
+  sessionID: string,
+  created: number,
+  parentID = "msg_user",
+): AssistantMessage {
+  return {
+    id,
+    sessionID,
+    role: "assistant",
+    time: { created, completed: created + 1 },
+    parentID,
+    modelID: "test-model",
+    providerID: "test-provider",
+    mode: "default",
+    agent: "test-agent",
+    path: {
+      cwd: "/repo",
+      root: "/repo",
+    },
+    cost: 0,
+    tokens: {
+      input: 0,
+      output: 0,
+      reasoning: 0,
+      cache: {
+        read: 0,
+        write: 0,
+      },
+    },
+  };
+}
+
+function createTextPart(
+  messageID: string,
+  sessionID: string,
+  text: string,
+  input: { synthetic?: boolean; ignored?: boolean } = {},
+): Part {
+  return {
+    id: `${messageID}_text_${text.length}`,
+    sessionID,
+    messageID,
+    type: "text",
+    text,
+    synthetic: input.synthetic,
+    ignored: input.ignored,
+  };
+}
+
+function createReasoningPart(messageID: string, sessionID: string, text: string): ReasoningPart {
+  return {
+    id: `${messageID}_reasoning`,
+    sessionID,
+    messageID,
+    type: "reasoning",
+    text,
+    time: {
+      start: 1,
+    },
+  };
+}
+
+function createToolPart(messageID: string, sessionID: string): ToolPart {
+  return {
+    id: `${messageID}_tool`,
+    sessionID,
+    messageID,
+    type: "tool",
+    callID: `${messageID}_call`,
+    tool: "read",
+    state: {
+      status: "completed",
+      input: {
+        path: "src/app.ts",
+        line: 3,
+      },
+      output: "file contents",
+      title: "Read file",
+      metadata: {},
+      time: {
+        start: 1,
+        end: 2,
+      },
+    },
+  };
+}
+
+function createFilePart(messageID: string, sessionID: string, path: string): FilePart {
+  return {
+    id: `${messageID}_file`,
+    sessionID,
+    messageID,
+    type: "file",
+    mime: "text/plain",
+    url: `file://${path}`,
+    source: {
+      type: "file",
+      path,
+      text: {
+        value: path,
+        start: 0,
+        end: path.length,
+      },
+    },
+  };
 }
 
 describe("loadSessionTranscript", () => {
   test("loads all transcript pages and returns messages in chronological order", async () => {
-    const calls: Array<{ sessionId: string; before?: string; limit: number }> = []
+    const calls: Array<{ sessionId: string; before?: string; limit: number }> = [];
 
     const transcript = await loadSessionTranscript(
       "sess_root",
       async (input) => {
-        calls.push(input)
+        calls.push(input);
 
         if (!input.before) {
           return {
@@ -48,7 +165,7 @@ describe("loadSessionTranscript", () => {
               createMessageRecord("msg_04", "sess_root", 40),
             ],
             nextCursor: "cursor_01",
-          }
+          };
         }
 
         return {
@@ -57,15 +174,15 @@ describe("loadSessionTranscript", () => {
             createMessageRecord("msg_01", "sess_root", 10),
             createMessageRecord("msg_02", "sess_root", 20),
           ],
-        }
+        };
       },
       2,
-    )
+    );
 
     expect(calls).toEqual([
       { sessionId: "sess_root", before: undefined, limit: 2 },
       { sessionId: "sess_root", before: "cursor_01", limit: 2 },
-    ])
+    ]);
 
     expect(transcript).toEqual({
       sessionId: "sess_root",
@@ -88,28 +205,30 @@ describe("loadSessionTranscript", () => {
         ["msg_03", 2],
         ["msg_04", 3],
       ]),
-    })
-  })
+    });
+  });
 
   test("returns deleted transcript when loader reports missing session", async () => {
     const transcript = await loadSessionTranscript("sess_deleted", async () => ({
       status: "deleted",
       items: [],
-    }))
+    }));
 
-    expect(transcript).toEqual(createSessionTranscript({ sessionId: "sess_deleted", status: "deleted", messages: [] }))
-  })
-})
+    expect(transcript).toEqual(
+      createSessionTranscript({ sessionId: "sess_deleted", status: "deleted", messages: [] }),
+    );
+  });
+});
 
 function createMessagesResult(input: {
-  status: number
-  data?: Array<{ info: UserMessage; parts: Part[] }>
-  error?: unknown
-  nextCursor?: string
+  status: number;
+  data?: Array<{ info: UserMessage; parts: Part[] }>;
+  error?: unknown;
+  nextCursor?: string;
 }) {
-  const headers = new Headers()
+  const headers = new Headers();
   if (input.nextCursor) {
-    headers.set("x-next-cursor", input.nextCursor)
+    headers.set("x-next-cursor", input.nextCursor);
   }
 
   return {
@@ -117,7 +236,7 @@ function createMessagesResult(input: {
     error: input.error,
     request: new Request("http://localhost/session/test/message"),
     response: new Response(null, { status: input.status, headers }),
-  }
+  };
 }
 
 function createMessagesClient(result: ReturnType<typeof createMessagesResult>): OpencodeClient {
@@ -125,9 +244,8 @@ function createMessagesClient(result: ReturnType<typeof createMessagesResult>): 
     session: {
       messages: async () => result,
     },
-  } as unknown as OpencodeClient
+  } as unknown as OpencodeClient;
 }
-
 
 describe("createSessionMessagesPageLoader", () => {
   test("treats 404 session message responses as deleted sessions", async () => {
@@ -143,13 +261,13 @@ describe("createSessionMessagesPageLoader", () => {
           },
         }),
       ),
-    )
+    );
 
     await expect(loadPage({ sessionId: "sess_deleted", limit: 100 })).resolves.toEqual({
       status: "deleted",
       items: [],
-    })
-  })
+    });
+  });
 
   test("throws on non-404 message loading failures", async () => {
     const loadPage = createSessionMessagesPageLoader(
@@ -164,12 +282,12 @@ describe("createSessionMessagesPageLoader", () => {
           },
         }),
       ),
-    )
+    );
 
     await expect(loadPage({ sessionId: "sess_root", limit: 100 })).rejects.toThrow(
       "Failed to load messages for session sess_root (400): Bad cursor",
-    )
-  })
+    );
+  });
 
   test("preserves API page order and leaves ordering to transcript load", async () => {
     const loadPage = createSessionMessagesPageLoader(
@@ -182,7 +300,7 @@ describe("createSessionMessagesPageLoader", () => {
           ],
         }),
       ),
-    )
+    );
 
     await expect(loadPage({ sessionId: "sess_root", limit: 100 })).resolves.toEqual({
       status: "available",
@@ -190,22 +308,27 @@ describe("createSessionMessagesPageLoader", () => {
         createMessageRecord("msg_02", "sess_root", 20),
         createMessageRecord("msg_01", "sess_root", 10),
       ],
-    })
-  })
-})
+    });
+  });
+});
 
 describe("createSessionTranscript", () => {
   test("builds message lookup indexes from ordered messages", () => {
     const transcript = createSessionTranscript({
       sessionId: "sess_root",
       status: "available",
-      messages: [createMessageRecord("msg_01", "sess_root", 1), createMessageRecord("msg_02", "sess_root", 2)],
-    })
+      messages: [
+        createMessageRecord("msg_01", "sess_root", 1),
+        createMessageRecord("msg_02", "sess_root", 2),
+      ],
+    });
 
-    expect(transcript.messageById.get("msg_01")).toEqual(createMessageRecord("msg_01", "sess_root", 1))
-    expect(transcript.messageIndexById.get("msg_01")).toBe(0)
-    expect(transcript.messages[1]).toEqual(createMessageRecord("msg_02", "sess_root", 2))
-  })
+    expect(transcript.messageById.get("msg_01")).toEqual(
+      createMessageRecord("msg_01", "sess_root", 1),
+    );
+    expect(transcript.messageIndexById.get("msg_01")).toBe(0);
+    expect(transcript.messages[1]).toEqual(createMessageRecord("msg_02", "sess_root", 2));
+  });
 
   test("extracts text-only prompt replay", () => {
     const parts: Part[] = [
@@ -231,11 +354,49 @@ describe("createSessionTranscript", () => {
         type: "text",
         text: " there",
       },
-    ]
+    ];
 
-    expect(getMessageTextReplay(parts)).toBe("hello there")
-  })
-})
+    expect(getMessageTextReplay(parts)).toBe("hello there");
+  });
+});
+
+describe("serializeSessionMessageRecordsForSummary", () => {
+  test("serializes assistant and user message content into summary-safe text", () => {
+    const transcript = createSessionTranscript({
+      sessionId: "sess_root",
+      status: "available",
+      messages: [
+        {
+          info: createAssistantMessage("msg_assistant", "sess_root", 20),
+          parts: [
+            createReasoningPart("msg_assistant", "sess_root", "compare two options"),
+            createTextPart("msg_assistant", "sess_root", "I checked the file."),
+            createToolPart("msg_assistant", "sess_root"),
+            createFilePart("msg_assistant", "sess_root", "src/app.ts"),
+          ],
+        },
+        {
+          info: createUserMessage("msg_followup", "sess_root", 30),
+          parts: [
+            createTextPart("msg_followup", "sess_root", "ignored", { synthetic: true }),
+            createTextPart("msg_followup", "sess_root", "ship it"),
+          ],
+        },
+      ],
+    });
+
+    expect(serializeSessionMessageRecordsForSummary(transcript.messages)).toBe(
+      [
+        "[Assistant reasoning]: compare two options",
+        "[Assistant]: I checked the file.",
+        '[Assistant tool calls]: read(path="src/app.ts", line=3)',
+        "[Assistant files]: src/app.ts",
+        "",
+        "[User]: ship it",
+      ].join("\n"),
+    );
+  });
+});
 
 describe("loadSnapshotSessionTranscripts", () => {
   test("loads all snapshot session ids", async () => {
@@ -257,7 +418,7 @@ describe("loadSnapshotSessionTranscripts", () => {
           children: [],
         },
       },
-    }
+    };
 
     const loaded = await loadSnapshotSessionTranscripts(snapshot, async (sessionId) =>
       createSessionTranscript({
@@ -265,7 +426,7 @@ describe("loadSnapshotSessionTranscripts", () => {
         status: "available",
         messages: [createMessageRecord(`msg_${sessionId}`, sessionId, 1)],
       }),
-    )
+    );
 
     expect(loaded).toEqual({
       sess_child: createSessionTranscript({
@@ -278,6 +439,6 @@ describe("loadSnapshotSessionTranscripts", () => {
         status: "available",
         messages: [createMessageRecord("msg_sess_root", "sess_root", 1)],
       }),
-    })
-  })
-})
+    });
+  });
+});

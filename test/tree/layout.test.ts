@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test"
-import type { MessageFlatRow, SessionFlatRow } from "../../src/lib/tree/flatten"
-import { formatTreeRow, getTreeContentWidth } from "../../src/lib/tree/layout"
+import { describe, expect, test } from "bun:test";
+import type { MessageFlatRow, SessionFlatRow } from "../../src/lib/tree/flatten";
+import { formatTreeRow, getTreeContentWidth } from "../../src/lib/tree/layout";
 
 function createMessageRow(depth: number, preview: string): MessageFlatRow {
   return {
@@ -12,7 +12,7 @@ function createMessageRow(depth: number, preview: string): MessageFlatRow {
     messageId: `msg_${depth}`,
     role: "user",
     preview,
-  }
+  };
 }
 
 function createSessionRow(isDeleted = false): SessionFlatRow {
@@ -24,14 +24,14 @@ function createSessionRow(isDeleted = false): SessionFlatRow {
     currentSessionId: "sess_root_child_very_long",
     title: "sess_root_child_very_long",
     isDeleted,
-  }
+  };
 }
 
 describe("tree layout", () => {
   test("subtracts route padding from terminal width", () => {
-    expect(getTreeContentWidth(120)).toBe(118)
-    expect(getTreeContentWidth(1)).toBe(1)
-  })
+    expect(getTreeContentWidth(120)).toBe(118);
+    expect(getTreeContentWidth(1)).toBe(1);
+  });
 
   test("shrinks message preview as depth grows", () => {
     const shallow = formatTreeRow({
@@ -39,20 +39,20 @@ describe("tree layout", () => {
       selected: false,
       current: false,
       width: 24,
-    })
+    });
 
     const deep = formatTreeRow({
       row: createMessageRow(3, "abcdefghijklmnop"),
       selected: false,
       current: false,
       width: 24,
-    })
+    });
 
-    expect(shallow).toBe("     user: abcdefghijkl…")
-    expect(deep).toBe("         user: abcdefgh…")
-    expect(shallow.length).toBe(24)
-    expect(deep.length).toBe(24)
-  })
+    expect(shallow).toBe("     user: abcdefghijkl…");
+    expect(deep).toBe("         user: abcdefgh…");
+    expect(shallow.length).toBe(24);
+    expect(deep.length).toBe(24);
+  });
 
   test("keeps current session marker and truncates title to available width", () => {
     const row = formatTreeRow({
@@ -60,11 +60,11 @@ describe("tree layout", () => {
       selected: true,
       current: true,
       width: 28,
-    })
+    });
 
-    expect(row).toBe("›  SESSION [CURRENT]: sess_…")
-    expect(row.length).toBe(28)
-  })
+    expect(row).toBe("›  SESSION [CURRENT]: sess_…");
+    expect(row.length).toBe(28);
+  });
 
   test("renders deleted session indicator before title", () => {
     const row = formatTreeRow({
@@ -72,9 +72,8 @@ describe("tree layout", () => {
       selected: false,
       current: false,
       width: 48,
-    })
+    });
 
-    expect(row).toBe("   SESSION [DELETED]: sess_root_child_very_long")
-  })
-
-})
+    expect(row).toBe("   SESSION [DELETED]: sess_root_child_very_long");
+  });
+});

@@ -1,22 +1,22 @@
-import { z } from "zod"
+import { z } from "zod";
 
-export const treeStorageScopeSchema = z.enum(["global", "local"])
+export const treeStorageScopeSchema = z.enum(["global", "local"]);
 
-export type TreeStorageScope = z.infer<typeof treeStorageScopeSchema>
+export type TreeStorageScope = z.infer<typeof treeStorageScopeSchema>;
 
 const treePluginOptionsSchema = z
   .object({
     storageScope: treeStorageScopeSchema.default("global"),
   })
-  .passthrough()
+  .passthrough();
 
 export type TreePluginOptions = {
-  readonly storageScope: TreeStorageScope
-}
+  readonly storageScope: TreeStorageScope;
+};
 
 export function parseTreePluginOptions(options: unknown): TreePluginOptions {
-  const parsed = treePluginOptionsSchema.parse(options ?? {})
+  const parsed = treePluginOptionsSchema.parse(options ?? {});
   return {
     storageScope: parsed.storageScope,
-  }
+  };
 }
