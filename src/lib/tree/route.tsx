@@ -12,6 +12,7 @@ import {
 } from "../opencode/messages"
 import { bootstrapTree } from "./bootstrap"
 import {
+  collectTreeBranchSummarySlice,
   isTreeBranchForkAction,
   planTreeBranchAction,
   type TreeBranchAction,
@@ -26,7 +27,6 @@ import { buildFlatRows } from "./flatten"
 import { getTreeContentWidth } from "./layout"
 import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation"
 import { projectSessionTree } from "./project"
-import { collectTreeBranchSummarySlice } from "./summary"
 import { mapTreeTheme } from "./theme"
 import { TreeView } from "./view"
 

@@ -5,7 +5,7 @@ import {
   serializeSessionMessageRecordsForSummary,
   type SessionTranscriptMap,
 } from "../../src/lib/opencode/messages"
-import { collectTreeBranchSummarySlice } from "../../src/lib/tree/summary"
+import { collectTreeBranchSummarySlice } from "../../src/lib/tree/branch"
 import type { TreeFlatRow } from "../../src/lib/tree/flatten"
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
