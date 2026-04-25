@@ -1,10 +1,8 @@
-# opencode-tree
-
 ### PI-style `/tree` plugin for the OpenCode TUI.
 
 `opencode-tree` adds a tree view for branched conversations without modifying OpenCode core. OpenCode remains the source of truth, while the plugin stores only the branch data needed for navigation and rendering
 
-## Demo
+## [Demo](https://github.com/ishaksebsib/opencode-tree/blob/main/demo.gif)
 
 ![opencode-tree demo](./demo.gif)
 
