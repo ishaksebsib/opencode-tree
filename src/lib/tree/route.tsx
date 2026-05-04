@@ -16,7 +16,7 @@ import {
 } from "./components/tree-route-content";
 import type { FlatTreeRows, TreeFlatRow } from "./flatten";
 import { buildFlatRows } from "./flatten";
-import type { TreeRouteKeybinds } from "./keybinds";
+import type { TreeKeybinds } from "./keybinds";
 import { getTreeContentWidth } from "./layout";
 import {
   getInitialSelectedRowIndex,
@@ -32,7 +32,7 @@ export type TreeRouteProps = {
   readonly client: OpencodeClient;
   readonly config: {
     readonly storageRoot?: string;
-    readonly keybinds: TreeRouteKeybinds;
+    readonly keybinds: TreeKeybinds;
     readonly linesPerJump: number;
   };
   readonly ui: Pick<TuiPluginApi["ui"], "dialog"> & TreeBranchSummaryDialogUI;
@@ -114,6 +114,7 @@ export function TreeRoute(props: TreeRouteProps) {
   );
   const branchController = createTreeRouteBranchController({
     client: props.client,
+    keybinds: props.config.keybinds,
     ui: props.ui,
     theme,
     navigateToSession: props.navigateToSession,
@@ -159,7 +160,7 @@ export function TreeRoute(props: TreeRouteProps) {
 
     if (branchController.busy()) return;
 
-    if (evt.name === "escape" || (evt.ctrl && evt.name === "c")) {
+    if (props.config.keybinds.match("back", evt)) {
       if (!props.sessionID) return;
       evt.preventDefault();
       evt.stopPropagation();
@@ -187,21 +188,21 @@ export function TreeRoute(props: TreeRouteProps) {
       return;
     }
 
-    if (evt.name === "up" || evt.name === "k") {
+    if (props.config.keybinds.match("move_up", evt)) {
       evt.preventDefault();
       evt.stopPropagation();
       setSelectedIndex((currentIndex) => moveSelectionUp(rows(), currentIndex));
       return;
     }
 
-    if (evt.name === "down" || evt.name === "j") {
+    if (props.config.keybinds.match("move_down", evt)) {
       evt.preventDefault();
       evt.stopPropagation();
       setSelectedIndex((currentIndex) => moveSelectionDown(rows(), currentIndex));
       return;
     }
 
-    if (evt.name === "return") {
+    if (props.config.keybinds.match("select", evt)) {
       const treeData = projectedTreeData();
       if (!treeData) return;
 
@@ -236,6 +237,10 @@ export function TreeRoute(props: TreeRouteProps) {
       <TreeRouteHelpPanel
         palette={palette()}
         busy={branchController.busy()}
+        moveUpKeybind={props.config.keybinds.print("move_up")}
+        moveDownKeybind={props.config.keybinds.print("move_down")}
+        selectKeybind={props.config.keybinds.print("select")}
+        backKeybind={props.config.keybinds.print("back")}
       />
 
       <Show when={branchController.actionErrorMessage()} keyed>

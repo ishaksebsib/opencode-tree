@@ -1,10 +1,14 @@
 import type { TuiKeybindMap, TuiKeybindSet } from "@opencode-ai/plugin/tui";
 
-export const treeRouteKeybindDefaults = {
+export const treeKeybindDefaults = {
+  move_up: "up,k",
+  move_down: "down,j",
   jump_up: "shift+up,shift+k",
   jump_down: "shift+down,shift+j",
+  select: "return",
+  back: "escape,ctrl+c",
 } satisfies TuiKeybindMap;
 
-export type TreeRouteKeybindName = keyof typeof treeRouteKeybindDefaults;
+export type TreeKeybindName = keyof typeof treeKeybindDefaults;
 
-export type TreeRouteKeybinds = Pick<TuiKeybindSet, "get" | "match" | "print">;
+export type TreeKeybinds = Pick<TuiKeybindSet, "get" | "match" | "print">;

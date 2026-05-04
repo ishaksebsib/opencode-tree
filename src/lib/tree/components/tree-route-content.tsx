@@ -32,6 +32,10 @@ export type ResolveTreeRouteBodyStateInput = {
 export type TreeRouteHelpPanelProps = {
   readonly palette: TreeThemePalette;
   readonly busy: boolean;
+  readonly moveUpKeybind: string;
+  readonly moveDownKeybind: string;
+  readonly selectKeybind: string;
+  readonly backKeybind: string;
 };
 
 export type TreeRouteStatusPanelProps = {
@@ -115,6 +119,11 @@ export function resolveTreeRouteBodyState(
 }
 
 export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
+  const moveUpKeybind = formatTreeHelpKeybind(props.moveUpKeybind);
+  const moveDownKeybind = formatTreeHelpKeybind(props.moveDownKeybind);
+  const selectKeybind = formatTreeHelpKeybind(props.selectKeybind);
+  const backKeybind = formatTreeHelpKeybind(props.backKeybind);
+
   return (
     <box
       flexDirection="row"
@@ -126,12 +135,29 @@ export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
       backgroundColor={props.palette.panelBackground}
     >
       <text fg={props.busy ? props.palette.branchingText : props.palette.helpText}>
-        <span style={{ fg: props.palette.helpKey }}>↑/↓</span> move •{" "}
-        <span style={{ fg: props.palette.helpKey }}>Enter</span> branch •{" "}
-        <span style={{ fg: props.palette.helpKey }}>esc</span> back
+        <span style={{ fg: props.palette.helpKey }}>
+          {moveUpKeybind}/{moveDownKeybind}
+        </span>{" "}
+        move • <span style={{ fg: props.palette.helpKey }}>{selectKeybind}</span> branch •{" "}
+        <span style={{ fg: props.palette.helpKey }}>{backKeybind}</span> back
       </text>
     </box>
   );
+}
+
+function formatTreeHelpKeybind(value: string): string {
+  switch (value) {
+    case "up":
+      return "↑";
+    case "down":
+      return "↓";
+    case "return":
+      return "Enter";
+    case "escape":
+      return "esc";
+    default:
+      return value;
+  }
 }
 
 export function TreeRouteStatusPanel(props: TreeRouteStatusPanelProps) {

@@ -3,7 +3,7 @@ import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { parseTreePluginOptions } from "./lib/config/plugin";
 import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages";
 import { resolveStorageRoot } from "./lib/storage";
-import { treeRouteKeybindDefaults } from "./lib/tree/keybinds";
+import { treeKeybindDefaults } from "./lib/tree/keybinds";
 import { TreeRoute } from "./lib/tree/route";
 import { resolveProjectRoot } from "./lib/tree/project";
 import {
@@ -17,7 +17,7 @@ const routeName = "tree";
 
 const tui: TuiPlugin = async (api, options) => {
   const pluginOptions = parseTreePluginOptions(options);
-  const treeRouteKeybinds = api.keybind.create(treeRouteKeybindDefaults, pluginOptions.keybinds);
+  const treeKeybinds = api.keybind.create(treeKeybindDefaults, pluginOptions.keybinds);
 
   api.command.register(() => {
     const current = api.route.current;
@@ -57,7 +57,7 @@ const tui: TuiPlugin = async (api, options) => {
           client: api.client,
           config: {
             storageRoot,
-            keybinds: treeRouteKeybinds,
+            keybinds: treeKeybinds,
             linesPerJump: pluginOptions.lines_per_jump,
           },
           ui: {

@@ -3,8 +3,12 @@ import { z } from "zod";
 export const treeStorageScopeSchema = z.enum(["global", "local"]);
 const treePluginKeybindsSchema = z
   .object({
+    move_up: z.string().optional(),
+    move_down: z.string().optional(),
     jump_up: z.string().optional(),
     jump_down: z.string().optional(),
+    select: z.string().optional(),
+    back: z.string().optional(),
   })
   .strict();
 

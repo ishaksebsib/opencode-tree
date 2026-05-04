@@ -17,16 +17,24 @@ describe("parseTreePluginOptions", () => {
         storageScope: "local",
         lines_per_jump: 12,
         keybinds: {
+          move_up: "w",
+          move_down: "s",
           jump_up: "shift+up",
           jump_down: "shift+down",
+          select: "space",
+          back: "q",
         },
       }),
     ).toEqual({
       storageScope: "local",
       lines_per_jump: 12,
       keybinds: {
+        move_up: "w",
+        move_down: "s",
         jump_up: "shift+up",
         jump_down: "shift+down",
+        select: "space",
+        back: "q",
       },
     });
   });
