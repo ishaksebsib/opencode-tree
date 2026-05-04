@@ -127,7 +127,6 @@ export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
     >
       <text fg={props.busy ? props.palette.branchingText : props.palette.helpText}>
         <span style={{ fg: props.palette.helpKey }}>↑/↓</span> move •{" "}
-        <span style={{ fg: props.palette.helpKey }}>j/k</span> move •{" "}
         <span style={{ fg: props.palette.helpKey }}>Enter</span> branch •{" "}
         <span style={{ fg: props.palette.helpKey }}>esc</span> back
       </text>

@@ -12,17 +12,17 @@ export function moveSelectionUp(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
 ): number | undefined {
-  return moveSelection(rows, currentIndex, -1);
+  return moveSelectionBy(rows, currentIndex, -1);
 }
 
 export function moveSelectionDown(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
 ): number | undefined {
-  return moveSelection(rows, currentIndex, 1);
+  return moveSelectionBy(rows, currentIndex, 1);
 }
 
-export function moveSelection(
+export function moveSelectionBy(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
   delta: number,

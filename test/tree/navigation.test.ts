@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { FlatTreeRows, TreeFlatRow } from "../../src/lib/tree/flatten";
 import {
   getInitialSelectedRowIndex,
+  moveSelectionBy,
   moveSelectionDown,
   moveSelectionUp,
 } from "../../src/lib/tree/navigation";
@@ -91,5 +92,15 @@ describe("selection movement", () => {
   test("starts from first or last row when no selection exists", () => {
     expect(moveSelectionDown(rows, undefined)).toBe(0);
     expect(moveSelectionUp(rows, undefined)).toBe(3);
+  });
+
+  test("moves by an arbitrary jump distance and clamps at bounds", () => {
+    expect(moveSelectionBy(rows, 0, 20)).toBe(3);
+    expect(moveSelectionBy(rows, 3, -20)).toBe(0);
+  });
+
+  test("starts from first or last row for arbitrary jumps when no selection exists", () => {
+    expect(moveSelectionBy(rows, undefined, 20)).toBe(0);
+    expect(moveSelectionBy(rows, undefined, -20)).toBe(3);
   });
 });

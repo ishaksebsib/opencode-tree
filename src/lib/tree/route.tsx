@@ -16,17 +16,27 @@ import {
 } from "./components/tree-route-content";
 import type { FlatTreeRows, TreeFlatRow } from "./flatten";
 import { buildFlatRows } from "./flatten";
+import type { TreeRouteKeybinds } from "./keybinds";
 import { getTreeContentWidth } from "./layout";
-import { getInitialSelectedRowIndex, moveSelectionDown, moveSelectionUp } from "./navigation";
+import {
+  getInitialSelectedRowIndex,
+  moveSelectionBy,
+  moveSelectionDown,
+  moveSelectionUp,
+} from "./navigation";
 import { projectSessionTree } from "./project";
 import { createTreeRouteBranchController } from "./route-branching";
 import { mapTreeTheme } from "./theme";
 
 export type TreeRouteProps = {
   readonly client: OpencodeClient;
+  readonly config: {
+    readonly storageRoot?: string;
+    readonly keybinds: TreeRouteKeybinds;
+    readonly linesPerJump: number;
+  };
   readonly ui: Pick<TuiPluginApi["ui"], "dialog"> & TreeBranchSummaryDialogUI;
   readonly projectRoot?: string;
-  readonly storageRoot?: string;
   readonly sessionID?: string;
   readonly theme: () => TuiThemeCurrent;
   readonly loadSessionTranscripts: LoadSnapshotSessionTranscripts;
@@ -42,10 +52,10 @@ export function TreeRoute(props: TreeRouteProps) {
   const palette = createMemo(() => mapTreeTheme(theme()));
 
   const bootstrapInput = createMemo(() => {
-    if (!props.projectRoot || !props.storageRoot) return undefined;
+    if (!props.projectRoot || !props.config.storageRoot) return undefined;
     return {
       projectRoot: props.projectRoot,
-      storageRoot: props.storageRoot,
+      storageRoot: props.config.storageRoot,
       sessionID: props.sessionID,
     };
   });
@@ -159,6 +169,24 @@ export function TreeRoute(props: TreeRouteProps) {
 
     if (rows().length === 0) return;
 
+    if (props.config.keybinds.match("jump_up", evt)) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      setSelectedIndex((currentIndex) =>
+        moveSelectionBy(rows(), currentIndex, -props.config.linesPerJump),
+      );
+      return;
+    }
+
+    if (props.config.keybinds.match("jump_down", evt)) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      setSelectedIndex((currentIndex) =>
+        moveSelectionBy(rows(), currentIndex, props.config.linesPerJump),
+      );
+      return;
+    }
+
     if (evt.name === "up" || evt.name === "k") {
       evt.preventDefault();
       evt.stopPropagation();
@@ -205,7 +233,10 @@ export function TreeRoute(props: TreeRouteProps) {
       gap={0}
       backgroundColor={palette().screenBackground}
     >
-      <TreeRouteHelpPanel palette={palette()} busy={branchController.busy()} />
+      <TreeRouteHelpPanel
+        palette={palette()}
+        busy={branchController.busy()}
+      />
 
       <Show when={branchController.actionErrorMessage()} keyed>
         {(message: string) => (
