@@ -277,7 +277,9 @@ describe("buildFlatRows preview", () => {
       collapsedSessionIds: new Set(),
     });
     const rows = buildFlatRows(visibleTree.root, "sess_root", {
-      messagePreviewByRowId: new Map([[getMessageRowId("sess_root", "msg_user"), "cached preview"]]),
+      messagePreviewByRowId: new Map([
+        [getMessageRowId("sess_root", "msg_user"), "cached preview"],
+      ]),
     }).rows;
 
     expect(rows[1]).toMatchObject({

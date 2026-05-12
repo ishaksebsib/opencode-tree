@@ -34,7 +34,9 @@ export type VisibleTree = {
 export function buildVisibleTree(
   root: ProjectedSessionNode,
   state: TreeVisibilityState,
-  parentRowIdById: ReadonlyMap<TreeRowId, TreeRowId | undefined> = buildProjectedTreeParentIndex(root),
+  parentRowIdById: ReadonlyMap<TreeRowId, TreeRowId | undefined> = buildProjectedTreeParentIndex(
+    root,
+  ),
 ): VisibleTree {
   const visibleRoot = buildVisibleSessionNode(root, state);
 

@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { AssistantMessage, TextPart, UserMessage } from "@opencode-ai/sdk/v2";
-import { createSessionTranscript, type SessionTranscriptMap } from "../../src/lib/opencode/messages";
+import {
+  createSessionTranscript,
+  type SessionTranscriptMap,
+} from "../../src/lib/opencode/messages";
 import type { TreeSnapshot } from "../../src/lib/storage";
 import { buildFlatRows } from "../../src/lib/tree/flatten";
 import { resolveVisibleSelectionRowId } from "../../src/lib/tree/navigation";

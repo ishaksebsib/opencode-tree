@@ -58,7 +58,9 @@ type ProjectedTreeIndex = {
 
 export function TreeRoute(props: TreeRouteProps) {
   const [selectedRowId, setSelectedRowId] = createSignal<TreeRowId | undefined>();
-  const [collapsedSessionIds, setCollapsedSessionIds] = createSignal<ReadonlySet<string>>(new Set());
+  const [collapsedSessionIds, setCollapsedSessionIds] = createSignal<ReadonlySet<string>>(
+    new Set(),
+  );
   const [treeFocused, setTreeFocused] = createSignal(false);
   const dimensions = useTerminalDimensions();
 
@@ -217,14 +219,18 @@ export function TreeRoute(props: TreeRouteProps) {
     if (props.config.keybinds.match("jump_up", evt)) {
       evt.preventDefault();
       evt.stopPropagation();
-      updateSelectedRowId((currentIndex) => moveSelectionBy(rows(), currentIndex, -props.config.linesPerJump));
+      updateSelectedRowId((currentIndex) =>
+        moveSelectionBy(rows(), currentIndex, -props.config.linesPerJump),
+      );
       return;
     }
 
     if (props.config.keybinds.match("jump_down", evt)) {
       evt.preventDefault();
       evt.stopPropagation();
-      updateSelectedRowId((currentIndex) => moveSelectionBy(rows(), currentIndex, props.config.linesPerJump));
+      updateSelectedRowId((currentIndex) =>
+        moveSelectionBy(rows(), currentIndex, props.config.linesPerJump),
+      );
       return;
     }
 
@@ -246,7 +252,8 @@ export function TreeRoute(props: TreeRouteProps) {
       evt.preventDefault();
       evt.stopPropagation();
       const targetSessionRow = getSelectedSessionRow();
-      if (!targetSessionRow || !targetSessionRow.isCollapsible || targetSessionRow.isCollapsed) return;
+      if (!targetSessionRow || !targetSessionRow.isCollapsible || targetSessionRow.isCollapsed)
+        return;
       setCollapsedSessionIds((current) => new Set(current).add(targetSessionRow.sessionId));
       return;
     }
@@ -255,7 +262,8 @@ export function TreeRoute(props: TreeRouteProps) {
       evt.preventDefault();
       evt.stopPropagation();
       const targetSessionRow = getSelectedSessionRow();
-      if (!targetSessionRow || !targetSessionRow.isCollapsible || !targetSessionRow.isCollapsed) return;
+      if (!targetSessionRow || !targetSessionRow.isCollapsible || !targetSessionRow.isCollapsed)
+        return;
       const nextSelectedRowId = getExpandedSessionFocusRowId(targetSessionRow.sessionId);
       setCollapsedSessionIds((current) => {
         const next = new Set(current);
@@ -390,7 +398,13 @@ function indexProjectedTree(
   sessionById[session.sessionId] = session;
 
   for (const childSession of session.childSessions) {
-    indexProjectedTree(childSession, sessionRowId, parentRowIdById, sessionById, messagePreviewByRowId);
+    indexProjectedTree(
+      childSession,
+      sessionRowId,
+      parentRowIdById,
+      sessionById,
+      messagePreviewByRowId,
+    );
   }
 
   for (const message of session.messages) {
@@ -399,7 +413,13 @@ function indexProjectedTree(
     messagePreviewByRowId.set(messageRowId, getMessagePreview(message));
 
     for (const childSession of message.childSessions) {
-      indexProjectedTree(childSession, messageRowId, parentRowIdById, sessionById, messagePreviewByRowId);
+      indexProjectedTree(
+        childSession,
+        messageRowId,
+        parentRowIdById,
+        sessionById,
+        messagePreviewByRowId,
+      );
     }
   }
 }

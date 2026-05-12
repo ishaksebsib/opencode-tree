@@ -142,8 +142,11 @@ export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
         <span style={{ fg: props.palette.helpKey }}>
           {moveUpKeybind}/{moveDownKeybind}
         </span>{" "}
-        move • <span style={{ fg: props.palette.helpKey }}>{collapseKeybind}/{expandKeybind}</span> collapse •{" "}
-        <span style={{ fg: props.palette.helpKey }}>{selectKeybind}</span> branch •{" "}
+        move •{" "}
+        <span style={{ fg: props.palette.helpKey }}>
+          {collapseKeybind}/{expandKeybind}
+        </span>{" "}
+        collapse • <span style={{ fg: props.palette.helpKey }}>{selectKeybind}</span> branch •{" "}
         <span style={{ fg: props.palette.helpKey }}>{backKeybind}</span> back
       </text>
     </box>
