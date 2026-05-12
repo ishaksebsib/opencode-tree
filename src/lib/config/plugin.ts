@@ -7,6 +7,8 @@ const treePluginKeybindsSchema = z
     move_down: z.string().optional(),
     jump_up: z.string().optional(),
     jump_down: z.string().optional(),
+    collapse: z.string().optional(),
+    expand: z.string().optional(),
     select: z.string().optional(),
     back: z.string().optional(),
   })

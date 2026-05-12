@@ -34,6 +34,8 @@ export type TreeRouteHelpPanelProps = {
   readonly busy: boolean;
   readonly moveUpKeybind: string;
   readonly moveDownKeybind: string;
+  readonly collapseKeybind: string;
+  readonly expandKeybind: string;
   readonly selectKeybind: string;
   readonly backKeybind: string;
 };
@@ -121,6 +123,8 @@ export function resolveTreeRouteBodyState(
 export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
   const moveUpKeybind = formatTreeHelpKeybind(props.moveUpKeybind);
   const moveDownKeybind = formatTreeHelpKeybind(props.moveDownKeybind);
+  const collapseKeybind = formatTreeHelpKeybind(props.collapseKeybind);
+  const expandKeybind = formatTreeHelpKeybind(props.expandKeybind);
   const selectKeybind = formatTreeHelpKeybind(props.selectKeybind);
   const backKeybind = formatTreeHelpKeybind(props.backKeybind);
 
@@ -138,7 +142,8 @@ export function TreeRouteHelpPanel(props: TreeRouteHelpPanelProps) {
         <span style={{ fg: props.palette.helpKey }}>
           {moveUpKeybind}/{moveDownKeybind}
         </span>{" "}
-        move • <span style={{ fg: props.palette.helpKey }}>{selectKeybind}</span> branch •{" "}
+        move • <span style={{ fg: props.palette.helpKey }}>{collapseKeybind}/{expandKeybind}</span> collapse •{" "}
+        <span style={{ fg: props.palette.helpKey }}>{selectKeybind}</span> branch •{" "}
         <span style={{ fg: props.palette.helpKey }}>{backKeybind}</span> back
       </text>
     </box>
@@ -155,6 +160,10 @@ function formatTreeHelpKeybind(value: string): string {
       return "Enter";
     case "escape":
       return "esc";
+    case "left":
+      return "←";
+    case "right":
+      return "→";
     default:
       return value;
   }

@@ -29,8 +29,9 @@ export function formatTreeRowParts(input: FormatTreeRowInput): FormattedTreeRow 
   const prefix = formatRowPrefix(input.row.depth, input.selected, input.current);
 
   if (input.row.kind === "session") {
+    const collapseMarker = formatSessionCollapseMarker(input.row);
     const suffix = formatSessionSuffix(input.row, input.current);
-    const label = `${SESSION_PREFIX}${suffix}:`;
+    const label = `${collapseMarker} ${SESSION_PREFIX}${suffix}:`;
     const titleWidth = Math.max(0, width - prefix.length - label.length - 1);
     const title = truncateToWidth(input.row.title, titleWidth);
     const body = title ? `${label} ${title}` : label;
@@ -48,6 +49,11 @@ export function formatTreeRowParts(input: FormatTreeRowInput): FormattedTreeRow 
     prefix,
     body: truncateToWidth(body, Math.max(0, width - prefix.length)),
   };
+}
+
+function formatSessionCollapseMarker(row: Extract<TreeFlatRow, { kind: "session" }>): string {
+  if (!row.isCollapsible) return " ";
+  return row.isCollapsed ? "▶" : "▼";
 }
 
 export function formatTreeRow(input: FormatTreeRowInput): string {
