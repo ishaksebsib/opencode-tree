@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@ishaksebsib/opencode-tree",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Pi-style /tree plugin for OpenCode TUI.",
   "license": "MIT",
   "files": [
