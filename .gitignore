@@ -35,3 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # codex
 .codex
+
+# agent md's
+AGENTS.md
+mds
