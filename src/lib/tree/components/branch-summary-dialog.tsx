@@ -3,10 +3,9 @@
 import type { TextareaRenderable } from "@opentui/core";
 import { TextAttributes } from "@opentui/core";
 import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui";
-import { useKeyboard } from "@opentui/solid";
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { Spinner } from "../../components/spinner";
-import type { TreeKeybinds } from "../keybinds";
+import { getTreeKeybindBindings, type TreeKeybindName, type TreeKeybinds } from "../keybinds";
 import type { TreeBranchSummaryRequest } from "../route-branching";
 
 type TreeBranchSummaryDialogOption = "no-summary" | "summarize" | "summarize-with-custom-prompt";
@@ -33,10 +32,19 @@ const branchSummaryDialogOptions = [
   description: string;
 }>;
 
+const branchSummaryDialogCommands = {
+  move_up: "tree.summary.move_up",
+  move_down: "tree.summary.move_down",
+  select: "tree.summary.select",
+  back: "tree.summary.back",
+} as const;
+
 export type TreeBranchSummaryDialogUI = Pick<TuiPluginApi["ui"], "dialog">;
 
 export type TreeBranchSummaryDialogProps = {
   readonly keybinds: TreeKeybinds;
+  readonly keybindLabel: (name: TreeKeybindName) => string;
+  readonly keymap: TuiPluginApi["keymap"];
   readonly ui: TreeBranchSummaryDialogUI;
   readonly theme: TuiThemeCurrent;
   readonly onClose: () => void;
@@ -95,66 +103,47 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     }, 1);
   });
 
-  useKeyboard((evt) => {
-    if (busy()) {
-      if (props.keybinds.match("back", evt)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        setCancelRequested(true);
-        props.onCancelBusy();
-        return;
-      }
+  createEffect(() => {
+    const off = props.keymap.registerLayer({
+      priority: 100,
+      commands: [
+        {
+          name: branchSummaryDialogCommands.move_up,
+          hidden: true,
+          enabled: () => !busy() && mode() === "select",
+          run: moveSelectionUp,
+        },
+        {
+          name: branchSummaryDialogCommands.move_down,
+          hidden: true,
+          enabled: () => !busy() && mode() === "select",
+          run: moveSelectionDown,
+        },
+        {
+          name: branchSummaryDialogCommands.select,
+          hidden: true,
+          enabled: () => !busy(),
+          run: runSelectCommand,
+        },
+        {
+          name: branchSummaryDialogCommands.back,
+          hidden: true,
+          run: runBackCommand,
+        },
+      ],
+      bindings: [
+        ...getTreeKeybindBindings(props.keybinds, "move_up", branchSummaryDialogCommands.move_up),
+        ...getTreeKeybindBindings(
+          props.keybinds,
+          "move_down",
+          branchSummaryDialogCommands.move_down,
+        ),
+        ...getTreeKeybindBindings(props.keybinds, "select", branchSummaryDialogCommands.select),
+        ...getTreeKeybindBindings(props.keybinds, "back", branchSummaryDialogCommands.back),
+      ],
+    });
 
-      evt.preventDefault();
-      evt.stopPropagation();
-      return;
-    }
-
-    if (mode() === "custom-prompt") {
-      if (props.keybinds.match("back", evt)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        setMode("select");
-        return;
-      }
-
-      if (props.keybinds.match("select", evt)) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        void submitCustomPrompt();
-      }
-
-      return;
-    }
-
-    if (props.keybinds.match("move_up", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      setSelectedIndex((current) =>
-        current <= 0 ? branchSummaryDialogOptions.length - 1 : current - 1,
-      );
-      return;
-    }
-
-    if (props.keybinds.match("move_down", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      setSelectedIndex((current) => (current + 1) % branchSummaryDialogOptions.length);
-      return;
-    }
-
-    if (props.keybinds.match("select", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      void selectOption(selectedOption().value);
-      return;
-    }
-
-    if (props.keybinds.match("back", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      props.onClose();
-    }
+    onCleanup(off);
   });
 
   const selectOption = async (option: TreeBranchSummaryDialogOption) => {
@@ -203,6 +192,40 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
     }
   };
 
+  function moveSelectionUp(): void {
+    setSelectedIndex((current) =>
+      current <= 0 ? branchSummaryDialogOptions.length - 1 : current - 1,
+    );
+  }
+
+  function moveSelectionDown(): void {
+    setSelectedIndex((current) => (current + 1) % branchSummaryDialogOptions.length);
+  }
+
+  function runSelectCommand(): void {
+    if (mode() === "custom-prompt") {
+      void submitCustomPrompt();
+      return;
+    }
+
+    void selectOption(selectedOption().value);
+  }
+
+  function runBackCommand(): void {
+    if (busy()) {
+      setCancelRequested(true);
+      props.onCancelBusy();
+      return;
+    }
+
+    if (mode() === "custom-prompt") {
+      setMode("select");
+      return;
+    }
+
+    props.onClose();
+  }
+
   return (
     <box paddingLeft={2} paddingRight={2} paddingBottom={1} gap={1}>
       <box flexDirection="row" justifyContent="space-between">
@@ -210,7 +233,7 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
           Create Branch
         </text>
         <text fg={props.theme.text}>
-          {props.keybinds.print("back")} <span style={{ fg: props.theme.textMuted }}>cancel</span>
+          {props.keybindLabel("back")} <span style={{ fg: props.theme.textMuted }}>cancel</span>
         </text>
       </box>
 
@@ -274,21 +297,21 @@ export function TreeBranchSummaryDialog(props: TreeBranchSummaryDialogProps) {
         <box paddingTop={1} flexDirection="row" gap={2}>
           <Show when={mode() === "select"}>
             <text fg={props.theme.text}>
-              {props.keybinds.print("select")}{" "}
+              {props.keybindLabel("select")}{" "}
               <span style={{ fg: props.theme.textMuted }}>select</span>
             </text>
             <text fg={props.theme.text}>
-              {props.keybinds.print("move_up")}/{props.keybinds.print("move_down")}{" "}
+              {props.keybindLabel("move_up")}/{props.keybindLabel("move_down")}{" "}
               <span style={{ fg: props.theme.textMuted }}>move</span>
             </text>
           </Show>
           <Show when={mode() === "custom-prompt"}>
             <text fg={props.theme.text}>
-              {props.keybinds.print("select")}{" "}
+              {props.keybindLabel("select")}{" "}
               <span style={{ fg: props.theme.textMuted }}>submit</span>
             </text>
             <text fg={props.theme.text}>
-              {props.keybinds.print("back")} <span style={{ fg: props.theme.textMuted }}>back</span>
+              {props.keybindLabel("back")} <span style={{ fg: props.theme.textMuted }}>back</span>
             </text>
           </Show>
         </box>

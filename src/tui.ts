@@ -3,7 +3,7 @@ import type { TuiPlugin, TuiPluginModule } from "@opencode-ai/plugin/tui";
 import { parseTreePluginOptions } from "./lib/config/plugin";
 import { createSnapshotSessionTranscriptsLoader } from "./lib/opencode/messages";
 import { resolveStorageRoot } from "./lib/storage";
-import { treeKeybindDefaults } from "./lib/tree/keybinds";
+import { createTreeKeybinds, formatTreeKeybindLabel } from "./lib/tree/keybinds";
 import { TreeRoute } from "./lib/tree/route";
 import { resolveProjectRoot } from "./lib/tree/project";
 import {
@@ -17,27 +17,24 @@ const routeName = "tree";
 
 const tui: TuiPlugin = async (api, options) => {
   const pluginOptions = parseTreePluginOptions(options);
-  const treeKeybinds = api.keybind.create(treeKeybindDefaults, pluginOptions.keybinds);
+  const treeKeybinds = createTreeKeybinds(pluginOptions.keybinds);
 
-  api.command.register(() => {
-    const current = api.route.current;
-    const inSession = isSessionRoute(current);
-
-    return [
+  api.keymap.registerLayer({
+    commands: [
       {
+        namespace: "palette",
+        name: "tree.open",
         title: "Tree",
-        value: "tree.open",
         category: "Plugin",
-        hidden: !inSession,
-        enabled: inSession,
-        slash: {
-          name: "tree",
-        },
-        onSelect: () => {
+        slashName: "tree",
+        suggested: () => isSessionRoute(api.route.current),
+        enabled: () => isSessionRoute(api.route.current),
+        run: () => {
           api.route.navigate(routeName, getTreeRouteParamsForNavigation(api.route.current));
+          api.ui.dialog.clear();
         },
       },
-    ];
+    ],
   });
 
   api.route.register([
@@ -58,8 +55,10 @@ const tui: TuiPlugin = async (api, options) => {
           config: {
             storageRoot,
             keybinds: treeKeybinds,
+            keybindLabel: (name) => formatTreeKeybindLabel(api.keymap, treeKeybinds, name),
             linesPerJump: pluginOptions.lines_per_jump,
           },
+          keymap: api.keymap,
           ui: {
             dialog: api.ui.dialog,
             DialogPrompt: api.ui.DialogPrompt,

@@ -16,6 +16,8 @@ const build = await Bun.build({
     "@opencode-ai/plugin/*",
     "@opentui/core",
     "@opentui/core/*",
+    "@opentui/keymap",
+    "@opentui/keymap/*",
     "@opentui/solid",
     "@opentui/solid/*",
     "opentui-spinner",

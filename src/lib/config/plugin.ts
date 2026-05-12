@@ -1,20 +1,29 @@
 import { z } from "zod";
 
 export const treeStorageScopeSchema = z.enum(["global", "local"]);
+
+const keybindValueSchema = z.union([
+  z.string(),
+  z.literal(false),
+  z.literal("none"),
+  z.array(z.string()),
+]);
+
 const treePluginKeybindsSchema = z
   .object({
-    move_up: z.string().optional(),
-    move_down: z.string().optional(),
-    jump_up: z.string().optional(),
-    jump_down: z.string().optional(),
-    collapse: z.string().optional(),
-    expand: z.string().optional(),
-    select: z.string().optional(),
-    back: z.string().optional(),
+    move_up: keybindValueSchema.optional(),
+    move_down: keybindValueSchema.optional(),
+    jump_up: keybindValueSchema.optional(),
+    jump_down: keybindValueSchema.optional(),
+    collapse: keybindValueSchema.optional(),
+    expand: keybindValueSchema.optional(),
+    select: keybindValueSchema.optional(),
+    back: keybindValueSchema.optional(),
   })
   .strict();
 
 export type TreeStorageScope = z.infer<typeof treeStorageScopeSchema>;
+export type TreePluginKeybindValue = z.infer<typeof keybindValueSchema>;
 export type TreePluginKeybindOverrides = z.infer<typeof treePluginKeybindsSchema>;
 
 const treePluginOptionsSchema = z

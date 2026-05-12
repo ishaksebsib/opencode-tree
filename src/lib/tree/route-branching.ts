@@ -22,7 +22,7 @@ import {
   type TreeBranchSummaryDialogUI,
 } from "./components/branch-summary-dialog";
 import type { TreeFlatRow } from "./flatten";
-import type { TreeKeybinds } from "./keybinds";
+import type { TreeKeybindName, TreeKeybinds } from "./keybinds";
 
 type TreeForkAction = Extract<TreeBranchAction, { kind: "fork" }>;
 
@@ -47,6 +47,8 @@ export type TreeRouteBusyState =
 export type TreeRouteBranchControllerInput = {
   readonly client: OpencodeClient;
   readonly keybinds: TreeKeybinds;
+  readonly keybindLabel: (name: TreeKeybindName) => string;
+  readonly keymap: TuiPluginApi["keymap"];
   readonly ui: Pick<TuiPluginApi["ui"], "dialog"> & TreeBranchSummaryDialogUI;
   readonly theme: Accessor<TuiThemeCurrent>;
   readonly navigateToSession: (sessionId: string) => void | Promise<void>;
@@ -194,6 +196,8 @@ export function createTreeRouteBranchController(
         () =>
           createComponent(TreeBranchSummaryDialog, {
             keybinds: input.keybinds,
+            keybindLabel: input.keybindLabel,
+            keymap: input.keymap,
             ui: input.ui,
             theme: input.theme(),
             onClose: closeSummaryDialog,

@@ -2,8 +2,16 @@
 
 import type { TuiPluginApi, TuiThemeCurrent } from "@opencode-ai/plugin/tui";
 import type { OpencodeClient } from "@opencode-ai/sdk/v2";
-import { useKeyboard, useTerminalDimensions } from "@opentui/solid";
-import { createEffect, createMemo, createResource, createSignal, on, Show } from "solid-js";
+import { useTerminalDimensions } from "@opentui/solid";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  on,
+  onCleanup,
+  Show,
+} from "solid-js";
 import type { LoadSnapshotSessionTranscripts, SessionTranscriptMap } from "../opencode/messages";
 import { bootstrapTree } from "./bootstrap";
 import { isTreeBranchForkAction, planTreeBranchAction } from "./branch";
@@ -16,7 +24,12 @@ import {
 } from "./components/tree-route-content";
 import type { FlatTreeRows, TreeFlatRow } from "./flatten";
 import { buildFlatRows, getMessagePreview } from "./flatten";
-import type { TreeKeybinds } from "./keybinds";
+import {
+  treeKeybindCommands,
+  type TreeKeybindName,
+  type TreeKeybinds,
+  treeRouteCommands,
+} from "./keybinds";
 import { getTreeContentWidth } from "./layout";
 import {
   moveSelectionBy,
@@ -40,8 +53,10 @@ export type TreeRouteProps = {
   readonly config: {
     readonly storageRoot?: string;
     readonly keybinds: TreeKeybinds;
+    readonly keybindLabel: (name: TreeKeybindName) => string;
     readonly linesPerJump: number;
   };
+  readonly keymap: TuiPluginApi["keymap"];
   readonly ui: Pick<TuiPluginApi["ui"], "dialog"> & TreeBranchSummaryDialogUI;
   readonly projectRoot?: string;
   readonly sessionID?: string;
@@ -161,6 +176,8 @@ export function TreeRoute(props: TreeRouteProps) {
   const branchController = createTreeRouteBranchController({
     client: props.client,
     keybinds: props.config.keybinds,
+    keybindLabel: props.config.keybindLabel,
+    keymap: props.keymap,
     ui: props.ui,
     theme,
     navigateToSession: props.navigateToSession,
@@ -189,109 +206,70 @@ export function TreeRoute(props: TreeRouteProps) {
     }),
   );
 
-  useKeyboard((evt) => {
-    if (evt.defaultPrevented) return;
+  createEffect(() => {
+    const off = props.keymap.registerLayer({
+      commands: [
+        {
+          name: treeKeybindCommands.back,
+          hidden: true,
+          enabled: () =>
+            branchController.busyState()?.kind === "summarizing" ||
+            (canUseTreeRoute() && Boolean(props.sessionID)),
+          run: runBackCommand,
+        },
+        {
+          name: treeKeybindCommands.jump_up,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: () =>
+            updateSelectedRowId((currentIndex) =>
+              moveSelectionBy(rows(), currentIndex, -props.config.linesPerJump),
+            ),
+        },
+        {
+          name: treeKeybindCommands.jump_down,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: () =>
+            updateSelectedRowId((currentIndex) =>
+              moveSelectionBy(rows(), currentIndex, props.config.linesPerJump),
+            ),
+        },
+        {
+          name: treeKeybindCommands.move_up,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: () => updateSelectedRowId((currentIndex) => moveSelectionUp(rows(), currentIndex)),
+        },
+        {
+          name: treeKeybindCommands.move_down,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: () => updateSelectedRowId((currentIndex) => moveSelectionDown(rows(), currentIndex)),
+        },
+        {
+          name: treeKeybindCommands.collapse,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: collapseSelectedSession,
+        },
+        {
+          name: treeKeybindCommands.expand,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: expandSelectedSession,
+        },
+        {
+          name: treeKeybindCommands.select,
+          hidden: true,
+          enabled: canUseTreeRows,
+          run: runSelectCommand,
+        },
+      ],
+      bindings: props.config.keybinds.gather("tree", treeRouteCommands),
+    });
 
-    const currentBusyState = branchController.busyState();
-    if (currentBusyState?.kind === "summarizing" && props.config.keybinds.match("back", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      currentBusyState.controller.abort();
-      return;
-    }
-
-    if (!treeFocused()) return;
-
-    if (props.ui.dialog.open) return;
-
-    if (branchController.busy()) return;
-
-    if (props.config.keybinds.match("back", evt)) {
-      if (!props.sessionID) return;
-      evt.preventDefault();
-      evt.stopPropagation();
-      void props.navigateToSession(props.sessionID);
-      return;
-    }
-
-    if (rows().length === 0) return;
-
-    if (props.config.keybinds.match("jump_up", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      updateSelectedRowId((currentIndex) =>
-        moveSelectionBy(rows(), currentIndex, -props.config.linesPerJump),
-      );
-      return;
-    }
-
-    if (props.config.keybinds.match("jump_down", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      updateSelectedRowId((currentIndex) =>
-        moveSelectionBy(rows(), currentIndex, props.config.linesPerJump),
-      );
-      return;
-    }
-
-    if (props.config.keybinds.match("move_up", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      updateSelectedRowId((currentIndex) => moveSelectionUp(rows(), currentIndex));
-      return;
-    }
-
-    if (props.config.keybinds.match("move_down", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      updateSelectedRowId((currentIndex) => moveSelectionDown(rows(), currentIndex));
-      return;
-    }
-
-    if (props.config.keybinds.match("collapse", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      const targetSessionRow = getSelectedSessionRow();
-      if (!targetSessionRow || !targetSessionRow.isCollapsible || targetSessionRow.isCollapsed)
-        return;
-      setCollapsedSessionIds((current) => new Set(current).add(targetSessionRow.sessionId));
-      return;
-    }
-
-    if (props.config.keybinds.match("expand", evt)) {
-      evt.preventDefault();
-      evt.stopPropagation();
-      const targetSessionRow = getSelectedSessionRow();
-      if (!targetSessionRow || !targetSessionRow.isCollapsible || !targetSessionRow.isCollapsed)
-        return;
-      const nextSelectedRowId = getExpandedSessionFocusRowId(targetSessionRow.sessionId);
-      setCollapsedSessionIds((current) => {
-        const next = new Set(current);
-        next.delete(targetSessionRow.sessionId);
-        return next;
-      });
-      setSelectedRowId(nextSelectedRowId);
-      return;
-    }
-
-    if (props.config.keybinds.match("select", evt)) {
-      const treeData = projectedTreeData();
-      if (!treeData) return;
-
-      evt.preventDefault();
-      evt.stopPropagation();
-      const action = planTreeBranchAction({
-        row: selectedRow(),
-        transcripts: treeData.transcripts,
-      });
-
-      if (isTreeBranchForkAction(action)) {
-        branchController.openBranchSummaryDialog(action);
-        return;
-      }
-
-      branchController.runTreeBranchAction(action);
-    }
+    onCleanup(off);
   });
 
   return (
@@ -309,12 +287,12 @@ export function TreeRoute(props: TreeRouteProps) {
       <TreeRouteHelpPanel
         palette={palette()}
         busy={branchController.busy()}
-        moveUpKeybind={props.config.keybinds.print("move_up")}
-        moveDownKeybind={props.config.keybinds.print("move_down")}
-        collapseKeybind={props.config.keybinds.print("collapse")}
-        expandKeybind={props.config.keybinds.print("expand")}
-        selectKeybind={props.config.keybinds.print("select")}
-        backKeybind={props.config.keybinds.print("back")}
+        moveUpKeybind={props.config.keybindLabel("move_up")}
+        moveDownKeybind={props.config.keybindLabel("move_down")}
+        collapseKeybind={props.config.keybindLabel("collapse")}
+        expandKeybind={props.config.keybindLabel("expand")}
+        selectKeybind={props.config.keybindLabel("select")}
+        backKeybind={props.config.keybindLabel("back")}
       />
 
       <Show when={branchController.actionErrorMessage()} keyed>
@@ -346,6 +324,62 @@ export function TreeRoute(props: TreeRouteProps) {
     const nextRow = rows()[nextIndex];
     if (!nextRow) return;
     setSelectedRowId(nextRow.id);
+  }
+
+  function canUseTreeRoute(): boolean {
+    return treeFocused() && !props.ui.dialog.open && !branchController.busy();
+  }
+
+  function canUseTreeRows(): boolean {
+    return canUseTreeRoute() && rows().length > 0;
+  }
+
+  function runBackCommand(): void {
+    const currentBusyState = branchController.busyState();
+    if (currentBusyState?.kind === "summarizing") {
+      currentBusyState.controller.abort();
+      return;
+    }
+
+    if (!props.sessionID || !canUseTreeRoute()) return;
+    void props.navigateToSession(props.sessionID);
+  }
+
+  function collapseSelectedSession(): void {
+    const targetSessionRow = getSelectedSessionRow();
+    if (!targetSessionRow || !targetSessionRow.isCollapsible || targetSessionRow.isCollapsed)
+      return;
+    setCollapsedSessionIds((current) => new Set(current).add(targetSessionRow.sessionId));
+  }
+
+  function expandSelectedSession(): void {
+    const targetSessionRow = getSelectedSessionRow();
+    if (!targetSessionRow || !targetSessionRow.isCollapsible || !targetSessionRow.isCollapsed)
+      return;
+    const nextSelectedRowId = getExpandedSessionFocusRowId(targetSessionRow.sessionId);
+    setCollapsedSessionIds((current) => {
+      const next = new Set(current);
+      next.delete(targetSessionRow.sessionId);
+      return next;
+    });
+    setSelectedRowId(nextSelectedRowId);
+  }
+
+  function runSelectCommand(): void {
+    const treeData = projectedTreeData();
+    if (!treeData) return;
+
+    const action = planTreeBranchAction({
+      row: selectedRow(),
+      transcripts: treeData.transcripts,
+    });
+
+    if (isTreeBranchForkAction(action)) {
+      branchController.openBranchSummaryDialog(action);
+      return;
+    }
+
+    branchController.runTreeBranchAction(action);
   }
 
   function getSelectedSessionRow(): Extract<TreeFlatRow, { kind: "session" }> | undefined {
