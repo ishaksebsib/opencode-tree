@@ -20,8 +20,6 @@ const build = await Bun.build({
     "@opentui/keymap/*",
     "@opentui/solid",
     "@opentui/solid/*",
-    "opentui-spinner",
-    "opentui-spinner/*",
     "solid-js",
     "solid-js/*",
   ],
