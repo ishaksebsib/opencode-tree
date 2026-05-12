@@ -1,28 +1,56 @@
 import type { FlatTreeRows, TreeFlatRow } from "./flatten";
+import type { TreeRowId } from "./visible";
 
-export function getInitialSelectedRowIndex(
+export function getInitialSelectedRowId(
   flatTree: FlatTreeRows,
   currentSessionId: string,
-): number | undefined {
+): TreeRowId | undefined {
   if (flatTree.rows.length === 0) return undefined;
-  return flatTree.lastRowIndexBySessionId[currentSessionId] ?? 0;
+  const rowIndex = flatTree.lastRowIndexBySessionId[currentSessionId] ?? 0;
+  return flatTree.rows[rowIndex]?.id;
+}
+
+export function resolveVisibleSelectionRowId(input: {
+  readonly flatTree: FlatTreeRows;
+  readonly currentSessionId?: string;
+  readonly parentRowIdById: ReadonlyMap<TreeRowId, TreeRowId | undefined>;
+  readonly preferredRowId?: TreeRowId;
+}): TreeRowId | undefined {
+  const preferredRowId = input.preferredRowId;
+  if (preferredRowId) {
+    let nextRowId: TreeRowId | undefined = preferredRowId;
+
+    while (nextRowId) {
+      if (input.flatTree.rowIndexById[nextRowId] !== undefined) {
+        return nextRowId;
+      }
+
+      nextRowId = input.parentRowIdById.get(nextRowId);
+    }
+  }
+
+  if (input.currentSessionId) {
+    return getInitialSelectedRowId(input.flatTree, input.currentSessionId);
+  }
+
+  return input.flatTree.rows[0]?.id;
 }
 
 export function moveSelectionUp(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
 ): number | undefined {
-  return moveSelection(rows, currentIndex, -1);
+  return moveSelectionBy(rows, currentIndex, -1);
 }
 
 export function moveSelectionDown(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
 ): number | undefined {
-  return moveSelection(rows, currentIndex, 1);
+  return moveSelectionBy(rows, currentIndex, 1);
 }
 
-export function moveSelection(
+export function moveSelectionBy(
   rows: readonly TreeFlatRow[],
   currentIndex: number | undefined,
   delta: number,

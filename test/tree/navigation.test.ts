@@ -1,24 +1,29 @@
 import { describe, expect, test } from "bun:test";
 import type { FlatTreeRows, TreeFlatRow } from "../../src/lib/tree/flatten";
 import {
-  getInitialSelectedRowIndex,
+  getInitialSelectedRowId,
+  moveSelectionBy,
   moveSelectionDown,
   moveSelectionUp,
+  resolveVisibleSelectionRowId,
 } from "../../src/lib/tree/navigation";
+import { getMessageRowId, getSessionRowId } from "../../src/lib/tree/visible";
 
 const rows: readonly TreeFlatRow[] = [
   {
     kind: "session",
-    id: "session:sess_root",
+    id: getSessionRowId("sess_root"),
     depth: 0,
     sessionId: "sess_root",
     currentSessionId: "sess_child",
     title: "sess_root",
     isDeleted: false,
+    isCollapsible: true,
+    isCollapsed: false,
   },
   {
     kind: "message",
-    id: "message:sess_root:msg_root",
+    id: getMessageRowId("sess_root", "msg_root"),
     depth: 1,
     sessionId: "sess_root",
     currentSessionId: "sess_child",
@@ -28,16 +33,18 @@ const rows: readonly TreeFlatRow[] = [
   },
   {
     kind: "session",
-    id: "session:sess_child",
+    id: getSessionRowId("sess_child"),
     depth: 2,
     sessionId: "sess_child",
     currentSessionId: "sess_child",
     title: "sess_child",
     isDeleted: false,
+    isCollapsible: true,
+    isCollapsed: false,
   },
   {
     kind: "message",
-    id: "message:sess_child:msg_child",
+    id: getMessageRowId("sess_child", "msg_child"),
     depth: 3,
     sessionId: "sess_child",
     currentSessionId: "sess_child",
@@ -49,26 +56,33 @@ const rows: readonly TreeFlatRow[] = [
 
 const flatTree: FlatTreeRows = {
   rows,
+  rowIndexById: {
+    "session:sess_root": 0,
+    "message:sess_root:msg_root": 1,
+    "session:sess_child": 2,
+    "message:sess_child:msg_child": 3,
+  },
   lastRowIndexBySessionId: {
     sess_root: 1,
     sess_child: 3,
   },
 };
 
-describe("getInitialSelectedRowIndex", () => {
+describe("getInitialSelectedRowId", () => {
   test("focuses last row for current session in O(1)", () => {
-    expect(getInitialSelectedRowIndex(flatTree, "sess_child")).toBe(3);
+    expect(getInitialSelectedRowId(flatTree, "sess_child")).toBe("message:sess_child:msg_child");
   });
 
   test("falls back to first row when current session is absent", () => {
-    expect(getInitialSelectedRowIndex(flatTree, "sess_missing")).toBe(0);
+    expect(getInitialSelectedRowId(flatTree, "sess_missing")).toBe("session:sess_root");
   });
 
   test("returns undefined for empty rows", () => {
     expect(
-      getInitialSelectedRowIndex(
+      getInitialSelectedRowId(
         {
           rows: [],
+          rowIndexById: {},
           lastRowIndexBySessionId: {},
         },
         "sess_child",
@@ -91,5 +105,53 @@ describe("selection movement", () => {
   test("starts from first or last row when no selection exists", () => {
     expect(moveSelectionDown(rows, undefined)).toBe(0);
     expect(moveSelectionUp(rows, undefined)).toBe(3);
+  });
+
+  test("moves by an arbitrary jump distance and clamps at bounds", () => {
+    expect(moveSelectionBy(rows, 0, 20)).toBe(3);
+    expect(moveSelectionBy(rows, 3, -20)).toBe(0);
+  });
+
+  test("starts from first or last row for arbitrary jumps when no selection exists", () => {
+    expect(moveSelectionBy(rows, undefined, 20)).toBe(0);
+    expect(moveSelectionBy(rows, undefined, -20)).toBe(3);
+  });
+});
+
+describe("resolveVisibleSelectionRowId", () => {
+  test("keeps the selected row when it is still visible", () => {
+    expect(
+      resolveVisibleSelectionRowId({
+        flatTree,
+        currentSessionId: "sess_child",
+        parentRowIdById: new Map(),
+        preferredRowId: "message:sess_child:msg_child",
+      }),
+    ).toBe("message:sess_child:msg_child");
+  });
+
+  test("falls back to nearest visible ancestor when selected row is hidden", () => {
+    expect(
+      resolveVisibleSelectionRowId({
+        flatTree: {
+          rows: rows.slice(0, 3),
+          rowIndexById: {
+            "session:sess_root": 0,
+            "message:sess_root:msg_root": 1,
+            "session:sess_child": 2,
+          },
+          lastRowIndexBySessionId: {
+            sess_root: 1,
+            sess_child: 2,
+          },
+        },
+        currentSessionId: "sess_child",
+        parentRowIdById: new Map([
+          ["message:sess_child:msg_child", "session:sess_child"],
+          ["session:sess_child", "message:sess_root:msg_root"],
+        ]),
+        preferredRowId: "message:sess_child:msg_child",
+      }),
+    ).toBe("session:sess_child");
   });
 });

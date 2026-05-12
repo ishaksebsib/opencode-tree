@@ -1,24 +1,33 @@
 import type { Part, ReasoningPart, TextPart, ToolPart } from "@opencode-ai/sdk/v2";
-import type { ProjectedMessageNode, ProjectedSessionNode } from "./project";
+import {
+  getMessageRowId,
+  getSessionRowId,
+  type MessageRowId,
+  type TreeRowId,
+  type VisibleMessageNode,
+  type VisibleSessionNode,
+} from "./visible";
 
 export type SessionFlatRow = {
   readonly kind: "session";
-  readonly id: `session:${string}`;
+  readonly id: TreeRowId;
   readonly depth: number;
   readonly sessionId: string;
   readonly currentSessionId: string;
   readonly title: string;
   readonly isDeleted: boolean;
+  readonly isCollapsible: boolean;
+  readonly isCollapsed: boolean;
 };
 
 export type MessageFlatRow = {
   readonly kind: "message";
-  readonly id: `message:${string}:${string}`;
+  readonly id: TreeRowId;
   readonly depth: number;
   readonly sessionId: string;
   readonly currentSessionId: string;
   readonly messageId: string;
-  readonly role: ProjectedMessageNode["record"]["info"]["role"];
+  readonly role: VisibleMessageNode["record"]["info"]["role"];
   readonly preview: string;
 };
 
@@ -26,70 +35,104 @@ export type TreeFlatRow = SessionFlatRow | MessageFlatRow;
 
 export type FlatTreeRows = {
   readonly rows: readonly TreeFlatRow[];
+  readonly rowIndexById: Readonly<Record<TreeRowId, number>>;
   readonly lastRowIndexBySessionId: Readonly<Record<string, number>>;
 };
 
-export function buildFlatRows(root: ProjectedSessionNode, currentSessionId: string): FlatTreeRows {
+export type BuildFlatRowsOptions = {
+  readonly messagePreviewByRowId?: ReadonlyMap<MessageRowId, string>;
+};
+
+export function buildFlatRows(
+  root: VisibleSessionNode,
+  currentSessionId: string,
+  options: BuildFlatRowsOptions = {},
+): FlatTreeRows {
   const rows: TreeFlatRow[] = [];
+  const rowIndexById = {} as Record<TreeRowId, number>;
   const lastRowIndexBySessionId: Record<string, number> = {};
 
-  flattenSession(rows, lastRowIndexBySessionId, root, currentSessionId, 0);
+  flattenSession(rows, rowIndexById, lastRowIndexBySessionId, root, currentSessionId, 0, options);
 
   return {
     rows,
+    rowIndexById,
     lastRowIndexBySessionId,
   };
 }
 
 function flattenSession(
   rows: TreeFlatRow[],
+  rowIndexById: Record<TreeRowId, number>,
   lastRowIndexBySessionId: Record<string, number>,
-  session: ProjectedSessionNode,
+  session: VisibleSessionNode,
   currentSessionId: string,
   depth: number,
+  options: BuildFlatRowsOptions,
 ): void {
-  pushRow(rows, lastRowIndexBySessionId, {
+  pushRow(rows, rowIndexById, lastRowIndexBySessionId, {
     kind: "session",
-    id: `session:${session.sessionId}`,
+    id: getSessionRowId(session.sessionId),
     depth,
     sessionId: session.sessionId,
     currentSessionId,
     title: session.sessionId,
     isDeleted: session.status === "deleted",
+    isCollapsible: session.isCollapsible,
+    isCollapsed: session.isCollapsed,
   });
 
   for (const childSession of session.childSessions) {
-    flattenSession(rows, lastRowIndexBySessionId, childSession, currentSessionId, depth + 1);
+    flattenSession(
+      rows,
+      rowIndexById,
+      lastRowIndexBySessionId,
+      childSession,
+      currentSessionId,
+      depth + 1,
+      options,
+    );
   }
 
   for (const message of session.messages) {
-    pushRow(rows, lastRowIndexBySessionId, {
+    const messageRowId = getMessageRowId(message.sessionId, message.messageId);
+    pushRow(rows, rowIndexById, lastRowIndexBySessionId, {
       kind: "message",
-      id: `message:${message.sessionId}:${message.messageId}`,
+      id: messageRowId,
       depth: depth + 1,
       sessionId: message.sessionId,
       currentSessionId,
       messageId: message.messageId,
       role: message.record.info.role,
-      preview: getMessagePreview(message),
+      preview: options.messagePreviewByRowId?.get(messageRowId) ?? getMessagePreview(message),
     });
 
     for (const childSession of message.childSessions) {
-      flattenSession(rows, lastRowIndexBySessionId, childSession, currentSessionId, depth + 2);
+      flattenSession(
+        rows,
+        rowIndexById,
+        lastRowIndexBySessionId,
+        childSession,
+        currentSessionId,
+        depth + 2,
+        options,
+      );
     }
   }
 }
 
 function pushRow(
   rows: TreeFlatRow[],
+  rowIndexById: Record<TreeRowId, number>,
   lastRowIndexBySessionId: Record<string, number>,
   row: TreeFlatRow,
 ): void {
   rows.push(row);
+  rowIndexById[row.id] = rows.length - 1;
   lastRowIndexBySessionId[row.sessionId] = rows.length - 1;
 }
 
-function getMessagePreview(message: ProjectedMessageNode): string {
+export function getMessagePreview(message: Pick<VisibleMessageNode, "record">): string {
   const previewParts = collectPreviewParts(message.record.parts);
 
   if (previewParts.textPart) {

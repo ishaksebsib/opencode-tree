@@ -16,6 +16,7 @@ import {
 import type { TreeSnapshot } from "../../src/lib/storage";
 import { buildFlatRows } from "../../src/lib/tree/flatten";
 import { projectSessionTree } from "../../src/lib/tree/project";
+import { buildVisibleTree } from "../../src/lib/tree/visible";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -159,6 +160,19 @@ function createTranscript(
 }
 
 describe("projectSessionTree", () => {
+  function buildRows(
+    snapshot: TreeSnapshot,
+    transcripts: SessionTranscriptMap,
+    currentSessionId: string,
+  ) {
+    return buildFlatRows(
+      buildVisibleTree(projectSessionTree(snapshot, transcripts), {
+        collapsedSessionIds: new Set(),
+      }).root,
+      currentSessionId,
+    ).rows;
+  }
+
   test("inserts child session rows immediately after anchor message", () => {
     const snapshot: TreeSnapshot = {
       version: 1,
@@ -190,7 +204,7 @@ describe("projectSessionTree", () => {
       ]),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_child");
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -240,7 +254,7 @@ describe("projectSessionTree", () => {
       ]),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_root");
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -320,7 +334,7 @@ describe("projectSessionTree", () => {
       }),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_child");
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -394,7 +408,7 @@ describe("projectSessionTree", () => {
       }),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_child").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_child");
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -465,7 +479,7 @@ describe("projectSessionTree", () => {
       }),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_root");
 
     expect(rows.map((row) => row.id)).toEqual([
       "session:sess_root",
@@ -518,7 +532,7 @@ describe("projectSessionTree", () => {
       }),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_root");
     const toolRow = rows[1];
 
     expect(toolRow).toMatchObject({
@@ -563,7 +577,7 @@ describe("projectSessionTree", () => {
       }),
     };
 
-    const rows = buildFlatRows(projectSessionTree(snapshot, transcripts), "sess_root").rows;
+    const rows = buildRows(snapshot, transcripts, "sess_root");
     const reasoningRow = rows[1];
 
     expect(reasoningRow).toMatchObject({
