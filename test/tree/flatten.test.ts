@@ -15,6 +15,7 @@ import {
 import type { TreeSnapshot } from "../../src/lib/storage";
 import { buildFlatRows } from "../../src/lib/tree/flatten";
 import { projectSessionTree } from "../../src/lib/tree/project";
+import { buildVisibleTree, getMessageRowId } from "../../src/lib/tree/visible";
 
 function createUserMessage(id: string, sessionID: string, created: number): UserMessage {
   return {
@@ -160,6 +161,15 @@ function createRootSnapshot(): TreeSnapshot {
 }
 
 describe("buildFlatRows preview", () => {
+  function buildRows(transcripts: SessionTranscriptMap) {
+    return buildFlatRows(
+      buildVisibleTree(projectSessionTree(createRootSnapshot(), transcripts), {
+        collapsedSessionIds: new Set(),
+      }).root,
+      "sess_root",
+    ).rows;
+  }
+
   test("summarizes assistant tool input on one line", () => {
     const transcripts: SessionTranscriptMap = {
       sess_root: createSessionTranscript({
@@ -181,10 +191,7 @@ describe("buildFlatRows preview", () => {
       }),
     };
 
-    const rows = buildFlatRows(
-      projectSessionTree(createRootSnapshot(), transcripts),
-      "sess_root",
-    ).rows;
+    const rows = buildRows(transcripts);
     const toolRow = rows[1];
 
     expect(toolRow).toBeDefined();
@@ -222,10 +229,7 @@ describe("buildFlatRows preview", () => {
       }),
     };
 
-    const rows = buildFlatRows(
-      projectSessionTree(createRootSnapshot(), transcripts),
-      "sess_root",
-    ).rows;
+    const rows = buildRows(transcripts);
     const reasoningRow = rows[1];
 
     expect(reasoningRow).toMatchObject({
@@ -248,13 +252,37 @@ describe("buildFlatRows preview", () => {
       }),
     };
 
-    const rows = buildFlatRows(
-      projectSessionTree(createRootSnapshot(), transcripts),
-      "sess_root",
-    ).rows;
+    const rows = buildRows(transcripts);
     expect(rows[1]).toMatchObject({
       kind: "message",
       preview: "hello from user prompt",
+    });
+  });
+
+  test("uses cached message previews when provided", () => {
+    const transcripts: SessionTranscriptMap = {
+      sess_root: createSessionTranscript({
+        sessionId: "sess_root",
+        status: "available",
+        messages: [
+          {
+            info: createUserMessage("msg_user", "sess_root", 10),
+            parts: [createTextPart("msg_user", "sess_root", "uncached preview")],
+          },
+        ],
+      }),
+    };
+    const projectedTree = projectSessionTree(createRootSnapshot(), transcripts);
+    const visibleTree = buildVisibleTree(projectedTree, {
+      collapsedSessionIds: new Set(),
+    });
+    const rows = buildFlatRows(visibleTree.root, "sess_root", {
+      messagePreviewByRowId: new Map([[getMessageRowId("sess_root", "msg_user"), "cached preview"]]),
+    }).rows;
+
+    expect(rows[1]).toMatchObject({
+      kind: "message",
+      preview: "cached preview",
     });
   });
 });

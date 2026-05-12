@@ -24,6 +24,8 @@ function createSessionRow(isDeleted = false): SessionFlatRow {
     currentSessionId: "sess_root_child_very_long",
     title: "sess_root_child_very_long",
     isDeleted,
+    isCollapsible: true,
+    isCollapsed: false,
   };
 }
 
@@ -62,7 +64,7 @@ describe("tree layout", () => {
       width: 28,
     });
 
-    expect(row).toBe("›  SESSION [CURRENT]: sess_…");
+    expect(row).toBe("›  ▼ SESSION [CURRENT]: ses…");
     expect(row.length).toBe(28);
   });
 
@@ -74,6 +76,20 @@ describe("tree layout", () => {
       width: 48,
     });
 
-    expect(row).toBe("   SESSION [DELETED]: sess_root_child_very_long");
+    expect(row).toBe("   ▼ SESSION [DELETED]: sess_root_child_very_lo…");
+  });
+
+  test("renders collapsed session marker", () => {
+    const row = formatTreeRow({
+      row: {
+        ...createSessionRow(),
+        isCollapsed: true,
+      },
+      selected: false,
+      current: false,
+      width: 48,
+    });
+
+    expect(row).toBe("   ▶ SESSION: sess_root_child_very_long");
   });
 });
