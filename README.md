@@ -22,17 +22,11 @@ opencode plugin @ishaksebsib/opencode-tree
 
 ## Configuration
 
-Config file: `~/.config/opencode/tui.json`
+`~/.config/opencode/tui.json`
 
-By default, the plugin stores tree state in OpenCode's global state directory.
+By default, tree state is saved [globally](#global-storage).
 
-```json
-{
-  "plugin": [["@ishaksebsib/opencode-tree", { "storageScope": "global" }]]
-}
-```
-
-To store plugin data inside the project's `.opencode` folder, set `storageScope` to `local`:
+To save it in the current project’s `.opencode` folder instead, set `storageScope` to `local`:
 
 ```json
 {
@@ -71,7 +65,7 @@ All options are optional. This example shows the default values:
 ## Storage
 
 - if `local`: `<projectRoot>/.opencode/opencode-tree/`
-- if `global`: `<opencode-state>/plugins/opencode-tree/`
+- <a id="global-storage"></a>if `global`: `<opencode-state>/plugins/opencode-tree/`
   - Where `<opencode-state>` is:
     - Linux: `~/.local/state/opencode`
     - macOS: `~/Library/Application Support/opencode`
